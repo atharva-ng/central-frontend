@@ -70,6 +70,10 @@ import {
   useArticleEditor,
 } from "@/components/app/ArticleEditor"
 import { ArticleToolbar } from "@/components/app/ArticleToolbar"
+import {
+  ImageBubbleMenu,
+  LinkBubbleMenu,
+} from "@/components/app/ArticleBubbleMenus"
 import { IndexlyLogo } from "@/components/app/IndexlyLogo"
 import { ARTICLE, clusterLabel, SECTION_HEADINGS, type ArticleImage } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
@@ -204,7 +208,7 @@ export default function ArticleReviewPage() {
         <div className="flex-1 min-w-0 overflow-y-auto border-r border-border flex flex-col">
 
           {/* Editor toolbar */}
-          <div className="border-b border-border bg-background shrink-0 px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <SegmentedControl<ViewMode>
                 options={["Edit", "Preview"] as const}
@@ -267,6 +271,12 @@ export default function ArticleReviewPage() {
           <div className="flex-1 px-12 py-8">
             <div className="max-w-3xl mx-auto">
               <ArticleEditorContent editor={editor} />
+              {!isGenerating && (
+                <>
+                  <ImageBubbleMenu editor={editor} />
+                  <LinkBubbleMenu editor={editor} />
+                </>
+              )}
             </div>
           </div>
         </div>

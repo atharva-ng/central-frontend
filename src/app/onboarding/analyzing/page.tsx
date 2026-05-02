@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
+import { WEB_ENTITY } from "@/lib/hack2hire"
 
 const STEPS = [
   { num: "01", label: "Reading your website", state: "done" as const },
@@ -14,7 +15,9 @@ const STEPS = [
   { num: "06", label: "Building your keyword strategy", state: "pending" as const },
 ]
 
-const COMPETITORS = ["coefficient.app", "coupler.io"]
+const COMPETITORS = WEB_ENTITY.competitors
+  .slice(0, 2)
+  .map((c) => c.url.replace(/^www\./, ""))
 
 export default function AnalyzingPage() {
   function handleEmailMe() {
@@ -32,7 +35,7 @@ export default function AnalyzingPage() {
         {/* Lede */}
         <div className="flex flex-col gap-3">
           <h1 className="text-[28px] leading-[1.15] font-medium tracking-tight">
-            Reading <span className="font-mono text-primary">indexly.ai</span>
+            Reading <span className="font-mono text-primary">{WEB_ENTITY.context.website}</span>
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Sit tight. We&apos;re studying your site, your competitors, and the search

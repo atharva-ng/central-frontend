@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
+import { WEB_ENTITY } from "@/lib/hack2hire"
 
 const STEPS = [
   { num: "01", label: "Business profile confirmed", state: "done" as const },
@@ -18,11 +19,10 @@ const STEPS = [
   { num: "07", label: "Building your content schedule", state: "pending" as const },
 ]
 
-const COMPETITOR_PULL = [
-  { domain: "coefficient.app", status: "200 keywords found" },
-  { domain: "coupler.io", status: "200 keywords found" },
-  { domain: "supermetrics.com", status: "loading…" },
-]
+const COMPETITOR_PULL = WEB_ENTITY.competitors.map((c, i) => ({
+  domain: c.url.replace(/^www\./, ""),
+  status: i === WEB_ENTITY.competitors.length - 1 ? "loading…" : "200 keywords found",
+}))
 
 export default function StrategyPage() {
   const [emailRequested, setEmailRequested] = useState(false)

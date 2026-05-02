@@ -25,6 +25,7 @@ import { TagInput } from "@/components/app/TagInput"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
 import { COUNTRIES } from "@/lib/countries"
+import { WEB_ENTITY } from "@/lib/hack2hire"
 
 interface Competitor {
   domain: string
@@ -33,20 +34,10 @@ interface Competitor {
 
 const MAX_COMPETITORS = 3
 
-const INITIAL_COMPETITORS: Competitor[] = [
-  {
-    domain: "coefficient.app",
-    reason: "No-code spreadsheet integration that syncs live data from CRMs, databases, and analytics tools into Google Sheets. Owns SERPs around 'live data spreadsheets' and 'no-code analytics workflows'.",
-  },
-  {
-    domain: "coupler.io",
-    reason: "Automated reporting pipeline connecting 60+ apps to spreadsheets, BI tools, and warehouses. Strong organic presence on 'data import automation' and ready-made reporting templates.",
-  },
-  {
-    domain: "supermetrics.com",
-    reason: "Marketing analytics connector pulling ad, social, and SEO data into Sheets, Looker Studio, and BigQuery. Dominates the 'marketing data pipeline' cluster with deep integration content.",
-  },
-]
+const INITIAL_COMPETITORS: Competitor[] = WEB_ENTITY.competitors.map((c) => ({
+  domain: c.url.replace(/^www\./, ""),
+  reason: c.reason,
+}))
 
 interface FormValues {
   businessName: string
@@ -59,22 +50,24 @@ interface FormValues {
 }
 
 export default function ProfilePage() {
+  const ctx = WEB_ENTITY.context
   const { register, watch } = useForm<FormValues>({
     defaultValues: {
-      businessName: "Indexly",
-      productDescription:
-        "AI-powered blog generation engine that researches your business, finds keyword opportunities, and writes SEO-optimized articles automatically",
+      businessName: ctx.business_name,
+      productDescription: ctx.product_type,
+      // target_geography is stored as a label ("Global", "US", etc); the form
+      // uses ISO codes — fall back to "US" when no exact match is available.
       market: "US",
-      brandVoice:
-        "Direct, practical, and approachable. Written for operators and analysts — not executives. Short sentences, outcome-first, no jargon.",
+      brandVoice: ctx.brand_voice_signals,
       wordsToAvoid: "leverage, synergize, robust, cutting-edge",
-      icp: "SaaS founders, content marketers, and growth teams who need consistent SEO content without hiring writers or agencies",
-      icpPain:
-        "Spending hours writing blog posts that don't rank because they skip keyword research and competitor analysis",
+      icp: ctx.icp_signals.roles.slice(0, 3).join(", "),
+      icpPain: ctx.icp_signals.pain_points[0],
     },
   })
 
-  const [tags, setTags] = useState(["Salesforce", "HubSpot", "Framer", "Stripe"])
+  const [tags, setTags] = useState<string[]>(
+    ctx.integrations.length > 0 ? ctx.integrations : ["LeetCode", "Python", "Java", "C++"]
+  )
   const [competitors, setCompetitors] = useState<Competitor[]>(INITIAL_COMPETITORS)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [newDomain, setNewDomain] = useState("")

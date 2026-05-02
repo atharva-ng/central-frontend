@@ -1,4 +1,11 @@
 import type { Funnel } from "@/components/app/FunnelBadge"
+import type { Intent } from "./schema"
+
+// `Cluster` and `ClusterKeyword` are UI-layer concepts not yet present in the
+// backend dump. They wrap the schema-level CompetitorKeyword with
+// editorial/lifecycle attributes (funnel, status, score) that the writing
+// pipeline produces. When the backend ships clustering, we'll derive these
+// from SiteIntelligence rather than hand-rolling them here.
 
 export interface ClusterKeyword {
   keyword: string
@@ -24,118 +31,126 @@ export interface Cluster {
 
 export const CLUSTERS: Cluster[] = [
   {
-    id: "salesforce-sheets",
-    name: "Salesforce + Sheets",
-    keywordCount: 22,
+    id: "system-design",
+    name: "System Design Foundations",
+    keywordCount: 18,
     pillarPublished: true,
     pillar: {
-      keyword: "salesforce google sheets integration",
-      funnel: "BOFU",
-      volume: 1900,
+      keyword: "scalability",
+      funnel: "MOFU",
+      volume: 18100,
       difficulty: 24,
-      cpc: 6.4,
-      score: 89,
+      cpc: 4.48,
+      score: 88,
       status: "generated",
     },
     supporting: [
-      { keyword: "sync salesforce to google sheets", funnel: "BOFU", volume: 590, difficulty: 19, score: 82, status: "scheduled", scheduledFor: "Feb 26" },
-      { keyword: "export salesforce reports to google sheets", funnel: "BOFU", volume: 480, difficulty: 17, score: 78, status: "queued" },
-      { keyword: "salesforce google sheets addon", funnel: "BOFU", volume: 390, difficulty: 15, score: 74, status: "queued" },
-      { keyword: "how to connect salesforce to google sheets", funnel: "TOFU", volume: 720, difficulty: 20, score: 71, status: "queued" },
-      { keyword: "real time salesforce data in google sheets", funnel: "BOFU", volume: 260, difficulty: 18, score: 68, status: "queued" },
+      { keyword: "what is caching", funnel: "TOFU", volume: 22200, difficulty: 39, cpc: 0.55, score: 84, status: "scheduled", scheduledFor: "May 4" },
+      { keyword: "cap theorem", funnel: "MOFU", volume: 6600, difficulty: 18, cpc: 0.16, score: 79, status: "queued" },
+      { keyword: "lru cache", funnel: "MOFU", volume: 6600, difficulty: 24, cpc: 1.81, score: 78, status: "queued" },
+      { keyword: "websockets", funnel: "TOFU", volume: 9900, difficulty: 50, cpc: 9.62, score: 73, status: "queued" },
+      { keyword: "acid transactions", funnel: "MOFU", volume: 6600, difficulty: 20, cpc: 0.59, score: 76, status: "queued" },
+      { keyword: "bloom filters", funnel: "MOFU", volume: 5400, difficulty: 33, cpc: 1.61, score: 70, status: "queued" },
+      { keyword: "tcp vs udp", funnel: "TOFU", volume: 8100, difficulty: 7, cpc: 0.48, score: 82, status: "queued" },
     ],
   },
   {
-    id: "hubspot-sheets",
-    name: "HubSpot + Sheets",
-    keywordCount: 16,
+    id: "interview-methods",
+    name: "Behavioral & Interview Prep",
+    keywordCount: 14,
     pillarPublished: false,
     pillar: {
-      keyword: "hubspot google sheets integration",
-      funnel: "BOFU",
-      volume: 1100,
-      difficulty: 22,
-      cpc: 5.4,
-      score: 84,
-      status: "scheduled",
-      scheduledFor: "Mar 3",
-    },
-    supporting: [
-      { keyword: "hubspot to google sheets sync", funnel: "BOFU", volume: 480, difficulty: 18, score: 76, status: "queued" },
-      { keyword: "export hubspot contacts to google sheets", funnel: "BOFU", volume: 320, difficulty: 16, score: 70, status: "queued" },
-    ],
-  },
-  {
-    id: "sheets-automation",
-    name: "Sheets Automation",
-    keywordCount: 31,
-    pillarPublished: true,
-    pillar: {
-      keyword: "automate google sheets",
+      keyword: "interview star method",
       funnel: "TOFU",
-      volume: 3200,
-      difficulty: 31,
-      cpc: 3.1,
-      score: 91,
-      status: "generated",
-    },
-    supporting: [
-      { keyword: "google sheets automation tools", funnel: "MOFU", volume: 1400, difficulty: 24, score: 80, status: "queued" },
-      { keyword: "what is a data connector for google sheets", funnel: "TOFU", volume: 390, difficulty: 14, score: 67, status: "queued" },
-    ],
-  },
-  {
-    id: "alternatives",
-    name: "Alternatives",
-    keywordCount: 19,
-    pillarPublished: false,
-    pillar: {
-      keyword: "supermetrics alternatives",
-      funnel: "MOFU",
-      volume: 1100,
-      difficulty: 18,
-      cpc: 4.2,
-      score: 85,
+      volume: 60500,
+      difficulty: 36,
+      cpc: 0.87,
+      score: 87,
       status: "scheduled",
-      scheduledFor: "Feb 24",
+      scheduledFor: "May 1",
     },
     supporting: [
-      { keyword: "coefficient alternatives", funnel: "MOFU", volume: 880, difficulty: 29, score: 73, status: "queued" },
-      { keyword: "zapier alternatives for google sheets", funnel: "MOFU", volume: 720, difficulty: 27, score: 70, status: "queued" },
+      { keyword: "crack coding interview", funnel: "TOFU", volume: 5400, difficulty: 32, cpc: 1.66, score: 75, status: "queued" },
+      { keyword: "leetcode patterns", funnel: "MOFU", volume: 5400, difficulty: 28, cpc: 0.66, score: 80, status: "generated" },
     ],
   },
   {
-    id: "use-case-sales",
-    name: "Use Case: Sales",
-    keywordCount: 24,
+    id: "design-patterns",
+    name: "OOP & Design Patterns",
+    keywordCount: 12,
     pillarPublished: false,
     pillar: {
-      keyword: "google sheets for sales reporting",
+      keyword: "design patterns",
       funnel: "MOFU",
-      volume: 590,
-      difficulty: 22,
-      cpc: 3.9,
-      score: 75,
-      status: "queued",
-    },
-    supporting: [],
-  },
-  {
-    id: "stripe-sheets",
-    name: "Stripe + Sheets",
-    keywordCount: 11,
-    pillarPublished: false,
-    pillar: {
-      keyword: "stripe data to google sheets",
-      funnel: "MOFU",
-      volume: 390,
-      difficulty: 16,
-      cpc: 4.7,
-      score: 72,
+      volume: 8100,
+      difficulty: 58,
+      cpc: 2.73,
+      score: 76,
       status: "queued",
     },
     supporting: [
-      { keyword: "pull stripe data into google sheets", funnel: "BOFU", volume: 320, difficulty: 18, score: 66, status: "queued" },
+      { keyword: "solid principles", funnel: "MOFU", volume: 9900, difficulty: 25, cpc: 0.98, score: 82, status: "queued" },
+      { keyword: "singleton pattern", funnel: "MOFU", volume: 14800, difficulty: 36, cpc: 0.39, score: 81, status: "queued" },
+      { keyword: "oop concepts", funnel: "TOFU", volume: 12100, difficulty: 20, cpc: 5.02, score: 79, status: "queued" },
+    ],
+  },
+  {
+    id: "dsa-patterns",
+    name: "DSA Patterns",
+    keywordCount: 9,
+    pillarPublished: false,
+    pillar: {
+      keyword: "prefix tree",
+      funnel: "TOFU",
+      volume: 8100,
+      difficulty: 17,
+      cpc: 0.44,
+      score: 78,
+      status: "queued",
+    },
+    supporting: [
+      { keyword: "master theorem", funnel: "TOFU", volume: 6600, difficulty: 3, cpc: 0.97, score: 84, status: "queued" },
+      { keyword: "idempotency", funnel: "MOFU", volume: 40500, difficulty: 21, cpc: 0.14, score: 89, status: "queued" },
+    ],
+  },
+  {
+    id: "git-workflow",
+    name: "Git for Engineers",
+    keywordCount: 8,
+    pillarPublished: false,
+    pillar: {
+      keyword: "git rebase",
+      funnel: "TOFU",
+      volume: 14800,
+      difficulty: 37,
+      cpc: 1.59,
+      score: 79,
+      status: "scheduled",
+      scheduledFor: "May 5",
+    },
+    supporting: [
+      { keyword: "git checkout", funnel: "TOFU", volume: 8100, difficulty: 29, cpc: 0.93, score: 74, status: "queued" },
+      { keyword: "git pull", funnel: "TOFU", volume: 6600, difficulty: 22, cpc: 0.35, score: 73, status: "queued" },
+    ],
+  },
+  {
+    id: "apis-protocols",
+    name: "APIs & Protocols",
+    keywordCount: 7,
+    pillarPublished: false,
+    pillar: {
+      keyword: "what is an api",
+      funnel: "TOFU",
+      volume: 49500,
+      difficulty: 58,
+      cpc: 2.88,
+      score: 81,
+      status: "queued",
+    },
+    supporting: [
+      { keyword: "json web token", funnel: "MOFU", volume: 22200, difficulty: 57, cpc: 7.25, score: 76, status: "queued" },
+      { keyword: "method resolution order", funnel: "TOFU", volume: 22200, difficulty: 14, cpc: 2.64, score: 83, status: "queued" },
+      { keyword: "defaultdict python", funnel: "TOFU", volume: 6600, difficulty: 11, cpc: 8.89, score: 77, status: "queued" },
     ],
   },
 ]
@@ -147,7 +162,7 @@ export interface KeywordLookup {
   volume: number
   difficulty: number
   cpc: number
-  intent: string
+  intent: Intent
   suggestedFunnel: Funnel
   cluster: string
   score: number
@@ -166,7 +181,7 @@ export function lookupKeyword(query: string): KeywordLookup | null {
   const cpc = +(1.5 + (hash % 80) / 10).toFixed(2)
   const funnels: Funnel[] = ["TOFU", "MOFU", "BOFU"]
   const suggestedFunnel = funnels[hash % 3]
-  const intents = ["informational", "transactional", "commercial", "navigational"]
+  const intents: Intent[] = ["informational", "transactional", "commercial", "navigational"]
   const intent = intents[hash % intents.length]
   const clusters = CLUSTERS.map((c) => c.name)
   const cluster = clusters[hash % clusters.length]

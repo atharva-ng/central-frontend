@@ -18,7 +18,11 @@ const PROSE_CLASSES =
   "prose-p:leading-relaxed prose-p:text-foreground " +
   "prose-strong:text-foreground prose-strong:font-medium " +
   "prose-a:text-primary prose-a:no-underline hover:prose-a:underline " +
-  "prose-img:rounded-lg prose-img:my-6 " +
+  "prose-img:rounded-lg prose-img:my-6 prose-img:cursor-pointer " +
+  // ProseMirror adds .ProseMirror-selectednode to clicked images
+  "[&_img.ProseMirror-selectednode]:outline-2 [&_img.ProseMirror-selectednode]:outline-primary " +
+  "[&_img.ProseMirror-selectednode]:outline-offset-2 " +
+  "[&_a]:cursor-pointer " +
   "[&_[data-placeholder-image]]:bg-muted [&_[data-placeholder-image]]:border " +
   "[&_[data-placeholder-image]]:border-dashed [&_[data-placeholder-image]]:border-border " +
   "[&_[data-placeholder-image]]:rounded-lg [&_[data-placeholder-image]]:py-12 " +
