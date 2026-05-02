@@ -111,7 +111,8 @@ export default function ArticlesIndexPage() {
   return (
     <>
       <Topbar title="Articles" />
-      <main className="max-w-6xl mx-auto w-full px-6 py-6 flex flex-col gap-8">
+      <main className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="max-w-6xl mx-auto w-full flex flex-col gap-8">
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border">
@@ -141,6 +142,7 @@ export default function ArticlesIndexPage() {
             </TabsContent>
           ))}
         </Tabs>
+        </div>
       </main>
     </>
   )

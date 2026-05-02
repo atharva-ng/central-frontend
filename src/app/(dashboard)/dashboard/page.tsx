@@ -180,7 +180,8 @@ export default function DashboardPage() {
           </Button>
         }
       />
-      <main className="max-w-5xl mx-auto w-full px-6 py-6 flex flex-col gap-8">
+      <main className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="max-w-5xl mx-auto w-full flex flex-col gap-8">
 
         {/* Week navigation */}
         <div className="flex items-center justify-between">
@@ -270,6 +271,7 @@ export default function DashboardPage() {
             ) : null}
           </DragOverlay>
         </DndContext>
+        </div>
       </main>
 
       <EditArticleSheet

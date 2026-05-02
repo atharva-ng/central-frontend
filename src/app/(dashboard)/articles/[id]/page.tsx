@@ -16,6 +16,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  Wand2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -54,6 +55,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { SectionLede } from "@/components/app/SectionLede"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { StatusBadge, type ArticleStatus } from "@/components/app/StatusBadge"
@@ -65,7 +71,7 @@ import {
 } from "@/components/app/ArticleEditor"
 import { ArticleToolbar } from "@/components/app/ArticleToolbar"
 import { IndexlyLogo } from "@/components/app/IndexlyLogo"
-import { ARTICLE, clusterLabel, type ArticleImage } from "@/lib/article-data"
+import { ARTICLE, clusterLabel, SECTION_HEADINGS, type ArticleImage } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
 
 const META_TITLE_MAX = 60
@@ -85,6 +91,7 @@ export default function ArticleReviewPage() {
   const [publishOpen, setPublishOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [rewriteOpen, setRewriteOpen] = useState(false)
 
   // Editing is locked while the article is being generated.
   const isGenerating = status === "generating"
@@ -118,7 +125,7 @@ export default function ArticleReviewPage() {
   return (
     <>
       {/* Custom 3-section topbar with auto-publish subtitle */}
-      <header className="border-b border-border sticky top-0 bg-background/85 backdrop-blur z-20 flex items-center px-6 gap-4 h-14">
+      <header className="border-b border-border shrink-0 bg-background flex items-center px-6 gap-4 h-14">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Link
             href="/articles"
@@ -139,7 +146,6 @@ export default function ArticleReviewPage() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-1 justify-end shrink-0">
-          <StatusBadge status={status} />
           {!isGenerating && (
             <Button size="sm" variant="outline" onClick={() => toast("Saved as draft")}>
               Save draft
@@ -198,7 +204,7 @@ export default function ArticleReviewPage() {
         <div className="flex-1 min-w-0 overflow-y-auto border-r border-border flex flex-col">
 
           {/* Editor toolbar */}
-          <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="border-b border-border bg-background shrink-0 px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <SegmentedControl<ViewMode>
                 options={["Edit", "Preview"] as const}
@@ -210,9 +216,38 @@ export default function ArticleReviewPage() {
                 <ArticleToolbar editor={editor} />
               )}
             </div>
-            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
-              {ARTICLE.word_count.toLocaleString()} words · 11 min read
-            </span>
+            <div className="flex items-center gap-3">
+              {!isGenerating && (
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <Wand2 className="size-3.5" />
+                        Regenerate section
+                      </button>
+                    }
+                  />
+                  <PopoverContent side="bottom" align="end" className="w-64 p-1.5 gap-0 flex flex-col">
+                    {SECTION_HEADINGS.map((heading) => (
+                      <button
+                        key={heading}
+                        type="button"
+                        onClick={() => toast(`Regenerating "${heading}"…`)}
+                        className="w-full text-left text-xs px-2.5 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        {heading}
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              )}
+              <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+                {ARTICLE.word_count.toLocaleString()} words · 11 min read
+              </span>
+            </div>
           </div>
 
           {/* Generating banner */}
@@ -405,8 +440,37 @@ export default function ArticleReviewPage() {
             ))}
           </Section>
 
+          <Divider />
+
+          {/* Section 8 — Danger Zone */}
+          <section className="px-4 pt-5 pb-5 flex flex-col gap-3">
+            <div className="flex items-baseline gap-3">
+              <span className="font-mono text-[11px] tabular-nums tracking-widest text-destructive">08</span>
+              <div className="h-px flex-1 bg-destructive/20" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-destructive/70">
+                Danger zone
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setRewriteOpen(true)}
+                className="w-full h-8 rounded-md border border-destructive/30 text-destructive text-xs hover:bg-destructive/5 transition-colors"
+              >
+                Request full rewrite
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(true)}
+                className="w-full h-8 rounded-md border border-destructive/30 text-destructive text-xs hover:bg-destructive/5 transition-colors"
+              >
+                Delete article
+              </button>
+            </div>
+          </section>
+
           {/* Footer hint */}
-          <div className="mt-auto p-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60 flex items-center justify-between">
+          <div className="border-t border-border p-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60 flex items-center justify-between">
             <span>Auto-saved · 12s ago</span>
             <IndexlyLogo className="text-[11px]" />
           </div>
@@ -436,6 +500,30 @@ export default function ArticleReviewPage() {
             <Button onClick={handlePublish} disabled={publishing}>
               {publishing && <Loader2 className="size-3.5 animate-spin" />}
               {publishing ? "Publishing…" : "Confirm publish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full rewrite confirmation */}
+      <Dialog open={rewriteOpen} onOpenChange={setRewriteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Request a full rewrite?</DialogTitle>
+            <DialogDescription className="text-sm">
+              This regenerates the entire article from scratch. Your current edits will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row justify-end gap-2 sm:justify-end">
+            <Button variant="ghost" onClick={() => setRewriteOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                toast("Full rewrite queued")
+                setRewriteOpen(false)
+              }}
+            >
+              Rewrite
             </Button>
           </DialogFooter>
         </DialogContent>

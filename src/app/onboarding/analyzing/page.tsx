@@ -22,10 +22,12 @@ export default function AnalyzingPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-6 py-12">
-      <div className="w-full max-w-md flex flex-col gap-10">
-
-        <Masthead phase="Analyzing" />
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="border-b border-border h-14 flex items-center px-8 shrink-0">
+        <Masthead phase="Analyzing" className="w-full" />
+      </header>
+      <main className="flex-1 overflow-y-auto px-6 py-16">
+      <div className="w-full max-w-md mx-auto flex flex-col gap-10">
 
         {/* Lede */}
         <div className="flex flex-col gap-3">
@@ -91,6 +93,7 @@ export default function AnalyzingPage() {
         </button>
 
       </div>
-    </main>
+      </main>
+    </div>
   )
 }

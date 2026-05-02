@@ -10,7 +10,7 @@ interface TopbarProps {
 
 export function Topbar({ title, action, back }: TopbarProps) {
   return (
-    <header className="h-14 border-b border-border sticky top-0 bg-background/85 backdrop-blur z-20 flex items-center justify-between px-6 gap-4">
+    <header className="h-14 border-b border-border shrink-0 bg-background/85 backdrop-blur flex items-center justify-between px-6 gap-4">
       <div className="flex items-center gap-3 min-w-0">
         {back && (
           <Link

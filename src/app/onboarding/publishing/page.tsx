@@ -26,10 +26,12 @@ export default function PublishingPage() {
   const { register } = useForm<FormValues>()
 
   return (
-    <main className="min-h-screen bg-background px-6 py-12">
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="border-b border-border h-14 flex items-center px-8 shrink-0">
+        <Masthead phase="Publishing" step="02 / 02" className="w-full" />
+      </header>
+      <main className="flex-1 overflow-y-auto px-6 py-12">
       <div className="mx-auto w-full max-w-xl flex flex-col gap-10">
-
-        <Masthead phase="Publishing" step="02 / 02" />
 
         {/* Lede */}
         <div className="flex flex-col gap-3">
@@ -179,7 +181,8 @@ export default function PublishingPage() {
 
         </form>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { type Editor } from "@tiptap/react"
 import {
   Bold,
@@ -15,6 +16,13 @@ import {
   Undo2,
   type LucideIcon,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
 interface ArticleToolbarProps {
@@ -25,17 +33,6 @@ interface ArticleToolbarProps {
 export function ArticleToolbar({ editor, disabled }: ArticleToolbarProps) {
   if (!editor) {
     return <div className="h-7" aria-hidden />
-  }
-
-  function setLink() {
-    const previous = editor!.getAttributes("link").href as string | undefined
-    const url = window.prompt("URL", previous ?? "https://")
-    if (url === null) return
-    if (url === "") {
-      editor!.chain().focus().extendMarkRange("link").unsetLink().run()
-      return
-    }
-    editor!.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
   }
 
   return (
@@ -102,12 +99,7 @@ export function ArticleToolbar({ editor, disabled }: ArticleToolbarProps) {
 
       <Sep />
 
-      <Btn
-        icon={Link2}
-        label="Link"
-        active={editor.isActive("link")}
-        onClick={setLink}
-      />
+      <LinkEditPopover editor={editor} />
 
       <Sep />
 
@@ -124,6 +116,104 @@ export function ArticleToolbar({ editor, disabled }: ArticleToolbarProps) {
         disabled={!editor.can().redo()}
       />
     </div>
+  )
+}
+
+function LinkEditPopover({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState("")
+  const isActive = editor.isActive("link")
+
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      const current = editor.getAttributes("link").href as string | undefined
+      setUrl(current ?? "")
+    }
+    setOpen(next)
+  }
+
+  function apply() {
+    if (url.trim() === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run()
+    } else {
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run()
+    }
+    setOpen(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      apply()
+    }
+    if (e.key === "Escape") {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger
+        className={cn(
+          "size-7 rounded-full inline-flex items-center justify-center transition-colors",
+          isActive
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        )}
+        aria-label="Link"
+        title="Link"
+      >
+        <Link2 className="size-3.5" />
+      </PopoverTrigger>
+      <PopoverContent side="bottom" sideOffset={8} className="w-72 flex flex-col gap-3 p-3">
+        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Link URL
+        </span>
+        <Input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="https://"
+          className="h-8 text-xs font-mono"
+          autoFocus
+        />
+        <div className="flex items-center justify-between gap-2">
+          {isActive ? (
+            <button
+              type="button"
+              onClick={() => {
+                editor.chain().focus().extendMarkRange("link").unsetLink().run()
+                setOpen(false)
+              }}
+              className="text-xs text-destructive hover:opacity-70 transition-opacity"
+            >
+              Remove link
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={apply}
+            >
+              Apply
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 
