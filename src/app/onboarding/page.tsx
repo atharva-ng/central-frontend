@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ import { COUNTRIES } from "@/lib/countries"
 import { Masthead } from "@/components/app/Masthead"
 
 export default function OnboardingPage() {
+  const router = useRouter()
   const [url, setUrl] = useState("")
 
   return (
@@ -81,6 +83,7 @@ export default function OnboardingPage() {
           <Button
             className="w-full h-11 group"
             disabled={!url.trim()}
+            onClick={() => router.push("/onboarding/analyzing")}
           >
             Begin analysis
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

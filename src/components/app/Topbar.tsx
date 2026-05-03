@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { ArrowLeft, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 interface TopbarProps {
   title: string
@@ -25,10 +24,13 @@ export function Topbar({ title, action, back }: TopbarProps) {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {action ?? (
-          <Button size="sm" className="group">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
             <Sparkles className="size-3.5" />
             Generate now
-          </Button>
+          </Link>
         )}
       </div>
     </header>

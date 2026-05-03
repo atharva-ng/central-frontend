@@ -8,6 +8,7 @@ import {
   Strikethrough,
   Heading2,
   Heading3,
+  Image as ImageIcon,
   List,
   ListOrdered,
   Quote,
@@ -100,6 +101,7 @@ export function ArticleToolbar({ editor, disabled }: ArticleToolbarProps) {
       <Sep />
 
       <LinkEditPopover editor={editor} />
+      <ImageInsertPopover editor={editor} />
 
       <Sep />
 
@@ -211,6 +213,94 @@ function LinkEditPopover({ editor }: { editor: Editor }) {
               Apply
             </Button>
           </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function ImageInsertPopover({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState("")
+  const [alt, setAlt] = useState("")
+
+  function reset() {
+    setUrl("")
+    setAlt("")
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (!next) reset()
+    setOpen(next)
+  }
+
+  function insert() {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    editor
+      .chain()
+      .focus()
+      .setImage({ src: trimmed, alt: alt.trim() || undefined })
+      .run()
+    reset()
+    setOpen(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      insert()
+    }
+    if (e.key === "Escape") setOpen(false)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger
+        className="size-7 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        aria-label="Insert image"
+        title="Insert image"
+      >
+        <ImageIcon className="size-3.5" />
+      </PopoverTrigger>
+      <PopoverContent side="bottom" sideOffset={8} className="w-80 flex flex-col gap-3 p-3">
+        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Insert image
+        </span>
+        <Input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="https://…"
+          className="h-8 text-xs font-mono"
+          autoFocus
+        />
+        <Input
+          value={alt}
+          onChange={(e) => setAlt(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Alt text (optional)"
+          className="h-8 text-xs"
+        />
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs"
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={!url.trim()}
+            onClick={insert}
+          >
+            Insert
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

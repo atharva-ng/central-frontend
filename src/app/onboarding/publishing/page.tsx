@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { ArrowLeft, ArrowRight, Clipboard, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ interface FormValues {
 }
 
 export default function PublishingPage() {
+  const router = useRouter()
   const [platform, setPlatform] = useState<Platform>(null)
   const [cadence, setCadence] = useState(10)
   const [publishMode, setPublishMode] = useState<"review" | "auto">("review")
@@ -169,11 +171,20 @@ export default function PublishingPage() {
 
           {/* Footer */}
           <div className="flex items-center justify-between border-t border-border pt-6">
-            <Button type="button" variant="ghost">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push("/onboarding/profile")}
+            >
               <ArrowLeft className="size-4" />
               Back
             </Button>
-            <Button type="button" disabled={platform === null} className="group">
+            <Button
+              type="button"
+              disabled={platform === null}
+              className="group"
+              onClick={() => router.push("/onboarding/strategy")}
+            >
               Build my strategy
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Button>

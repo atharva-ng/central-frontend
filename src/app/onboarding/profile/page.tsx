@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { ArrowLeft, ArrowRight, ExternalLink, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,7 @@ interface FormValues {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
   const ctx = WEB_ENTITY.context
   const { register, watch } = useForm<FormValues>({
     defaultValues: {
@@ -238,11 +240,20 @@ export default function ProfilePage() {
 
           {/* Footer rule + buttons */}
           <div className="flex items-center justify-between border-t border-border pt-6">
-            <Button type="button" variant="ghost">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push("/onboarding")}
+            >
               <ArrowLeft className="size-4" />
               Back
             </Button>
-            <Button type="button" disabled={!canContinue} className="group">
+            <Button
+              type="button"
+              disabled={!canContinue}
+              className="group"
+              onClick={() => router.push("/onboarding/publishing")}
+            >
               Looks right
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Button>
