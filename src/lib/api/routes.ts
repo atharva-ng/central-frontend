@@ -9,4 +9,7 @@ export const ROUTES = {
     me: "/v1/users/me",
     onboarding: "/v1/users/me/onboarding",
   },
+  onboarding: {
+    begin: "/v1/onboard",
+  },
 } as const

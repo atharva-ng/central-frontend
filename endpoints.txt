@@ -1,0 +1,123 @@
+================================================================================
+BlogEngine — Backend Endpoint Contract (Frontend Expectations)
+================================================================================
+
+Frontend version: 2026-05-03
+Base URL:         NEXT_PUBLIC_API_URL  (dev: http://localhost:3090)
+Auth:             `Authorization: Bearer <Clerk JWT>` on all routes
+Content type:     application/json (request and response)
+
+All routes registered in code at: src/lib/api/routes.ts
+
+--------------------------------------------------------------------------------
+ASSUMPTION — User provisioning
+--------------------------------------------------------------------------------
+
+The frontend assumes the backend listens to Clerk's `user.created` webhook and
+creates a row in `users` with `onboardingCompletedAt = NULL` the moment a user
+signs up.
+
+The brief race window between sign-up and webhook delivery is handled
+client-side: a 404 from `GET /v1/users/me` is treated as "new user — send to
+onboarding." Onboarding submission would then upsert if needed.
+
+--------------------------------------------------------------------------------
+GET /v1/users/me                                                       [WIRED]
+--------------------------------------------------------------------------------
+
+Returns the currently authenticated user's record. Called server-side from:
+
+  - src/app/page.tsx                  (post-auth dispatcher)
+  - src/app/(dashboard)/layout.tsx    (enforce: must be onboarded)
+  - src/app/onboarding/page.tsx       (enforce: must NOT be onboarded)
+
+Request:
+  Headers:
+    Authorization: Bearer <Clerk JWT>
+
+Response 200 — body:
+  {
+    "id":                    "<backend PK>",
+    "clerkUserId":           "user_xxx",
+    "email":                 "user@example.com",
+    "onboardingCompletedAt": "2026-05-03T12:34:56.000Z" | null,
+    "createdAt":             "2026-05-03T12:00:00.000Z"
+  }
+
+  - `onboardingCompletedAt` is ISO 8601 if onboarded, null otherwise.
+  - The frontend treats null and 404 identically: send to /onboarding.
+
+Response 404:
+  User not yet provisioned (Clerk webhook race). Frontend interprets as
+  "new user." No body required.
+
+Response 401:
+  Missing or invalid Clerk token. Frontend will not retry; surfaces error.
+
+Response 5xx / network error:
+  Frontend retries ONCE with 200ms backoff before surfacing to the
+  Next.js error boundary (error.tsx).
+
+Caching:
+  None. The response must reflect onboardingCompletedAt transitions
+  immediately (so the post-onboarding redirect to /dashboard works on the
+  very next page load).
+
+--------------------------------------------------------------------------------
+POST /v1/users/me/onboarding                                        [DEFERRED]
+--------------------------------------------------------------------------------
+
+NOT YET WIRED on the frontend. Spec'd here so the backend can build it in
+parallel. Frontend will call this from the onboarding form's submit handler.
+
+Marks onboarding complete and persists the user's website + market.
+
+Request:
+  Headers:
+    Authorization: Bearer <Clerk JWT>
+  Body:
+    {
+      "websiteUrl":    "https://yoursite.com",
+      "primaryMarket": "US"                    // ISO 3166-1 alpha-2
+    }
+
+Response 200 — body:
+  Full updated User record (same shape as GET /v1/users/me), with
+  `onboardingCompletedAt` now non-null.
+
+Response 400:
+  Validation failure (malformed URL, unknown country code, etc.).
+  Body should include a machine-readable error code + human message.
+
+Response 401:
+  Missing or invalid Clerk token.
+
+Response 409:
+  User is already onboarded. (Open question with backend: should we 409
+  or idempotently overwrite? Frontend prefers 409 so the layout-level
+  enforcement catches misuse before the request is made.)
+
+Side effects:
+  - Sets `onboardingCompletedAt = NOW()` on the user row.
+  - Persists `websiteUrl` and `primaryMarket`.
+  - May kick off downstream analysis jobs (out of scope for this contract).
+
+Idempotency:
+  Non-idempotent. Frontend will NOT auto-retry on 5xx for this endpoint.
+
+--------------------------------------------------------------------------------
+Notes for backend implementer
+--------------------------------------------------------------------------------
+
+1. The `id` field on the User response is the backend's primary key. It does
+   NOT need to equal the Clerk user id; the frontend stores both.
+
+2. Timestamps are ISO 8601 strings (not numeric Unix timestamps). The frontend
+   typings reflect this:  `onboardingCompletedAt: string | null`.
+
+3. JWT verification: use Clerk's standard JWT verification middleware. The
+   `sub` claim is the Clerk user id (`user_xxx`).
+
+4. CORS: dev frontend runs on http://localhost:3000 (or 3001), dev backend on
+   http://localhost:3090. Allow credentials = false (we use bearer tokens, not
+   cookies).

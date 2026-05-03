@@ -1,4 +1,6 @@
 export { ApiError, NetworkError } from "./core"
 export { apiFetchClient } from "./fetcher.client"
+export { beginOnboarding } from "./onboarding.client"
+export type { BeginOnboardingPayload } from "./onboarding.client"
 export { ROUTES } from "./routes"
 export type { User } from "./types"

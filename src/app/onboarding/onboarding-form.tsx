@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
+import { ArrowRight, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,9 +16,41 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { COUNTRIES } from "@/lib/countries"
+import { ApiError, beginOnboarding } from "@/lib/api/client"
 
 export function OnboardingForm() {
+  const router = useRouter()
+  const { getToken } = useAuth()
   const [url, setUrl] = useState("")
+  const [countryCode, setCountryCode] = useState("US")
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit() {
+    const trimmed = url.trim().replace(/^\/+/, "")
+    if (!trimmed || submitting) return
+
+    const country = COUNTRIES.find((c) => c.code === countryCode)?.name
+    if (!country) {
+      toast.error("Pick a primary market.")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await beginOnboarding(getToken, {
+        websiteUrl: `https://${trimmed}`,
+        country,
+      })
+      router.push("/onboarding/analyzing")
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? `Couldn't start analysis (${err.status}).`
+          : "Couldn't reach the server. Check your connection."
+      toast.error(message)
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="w-full max-w-md mx-auto flex flex-col gap-10">
@@ -43,6 +78,7 @@ export function OnboardingForm() {
               className="border-0 shadow-none px-0 h-10 text-sm focus-visible:ring-0 bg-transparent"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
+              disabled={submitting}
             />
           </div>
         </div>
@@ -51,7 +87,11 @@ export function OnboardingForm() {
           <Label htmlFor="market" className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Primary market
           </Label>
-          <Select defaultValue="US">
+          <Select
+            value={countryCode}
+            onValueChange={(value) => value && setCountryCode(value)}
+            disabled={submitting}
+          >
             <SelectTrigger
               id="market"
               className="w-full h-10 border-0 border-b border-border rounded-none px-0 shadow-none bg-transparent focus:ring-0 focus:border-foreground"
@@ -70,10 +110,20 @@ export function OnboardingForm() {
       <div className="flex flex-col gap-3">
         <Button
           className="w-full h-11 group"
-          disabled={!url.trim()}
+          disabled={!url.trim() || submitting}
+          onClick={handleSubmit}
         >
-          Begin analysis
-          <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          {submitting ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Beginning analysis
+            </>
+          ) : (
+            <>
+              Begin analysis
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </>
+          )}
         </Button>
         <p className="text-xs text-muted-foreground">
           About 30 seconds. We never publish anything without your approval.
