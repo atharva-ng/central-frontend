@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { type Editor } from "@tiptap/react"
 import {
   Bold,
@@ -15,8 +15,10 @@ import {
   Link2,
   Redo2,
   Undo2,
+  Upload,
   type LucideIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -219,14 +221,20 @@ function LinkEditPopover({ editor }: { editor: Editor }) {
   )
 }
 
+// 8 MB cap — anything larger gets rejected with a toast. Data URLs scale with
+// the file, so this also keeps the editor doc size sane.
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
 function ImageInsertPopover({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState("")
   const [alt, setAlt] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function reset() {
     setUrl("")
     setAlt("")
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   function handleOpenChange(next: boolean) {
@@ -234,7 +242,7 @@ function ImageInsertPopover({ editor }: { editor: Editor }) {
     setOpen(next)
   }
 
-  function insert() {
+  function insertFromUrl() {
     const trimmed = url.trim()
     if (!trimmed) return
     editor
@@ -246,10 +254,36 @@ function ImageInsertPopover({ editor }: { editor: Editor }) {
     setOpen(false)
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Pick an image file")
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image too large — keep it under 8 MB")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      editor
+        .chain()
+        .focus()
+        .setImage({ src: dataUrl, alt: alt.trim() || file.name })
+        .run()
+      reset()
+      setOpen(false)
+    }
+    reader.onerror = () => toast.error("Couldn't read that file")
+    reader.readAsDataURL(file)
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault()
-      insert()
+      insertFromUrl()
     }
     if (e.key === "Escape") setOpen(false)
   }
@@ -267,13 +301,39 @@ function ImageInsertPopover({ editor }: { editor: Editor }) {
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Insert image
         </span>
+
+        {/* Upload from computer */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center justify-center gap-2 h-9 rounded-md border border-dashed border-border bg-muted/30 text-sm hover:bg-muted hover:border-foreground/30 transition-colors"
+        >
+          <Upload className="size-3.5" />
+          Upload from computer
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        {/* Divider */}
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            or paste URL
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="https://…"
           className="h-8 text-xs font-mono"
-          autoFocus
         />
         <Input
           value={alt}
@@ -297,9 +357,9 @@ function ImageInsertPopover({ editor }: { editor: Editor }) {
             size="sm"
             className="h-7 text-xs"
             disabled={!url.trim()}
-            onClick={insert}
+            onClick={insertFromUrl}
           >
-            Insert
+            Insert URL
           </Button>
         </div>
       </PopoverContent>
