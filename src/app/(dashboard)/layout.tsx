@@ -1,25 +1,18 @@
-"use client"
-
-import { useAuth } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 import { Sidebar } from "@/components/app/Sidebar"
+import { getCurrentUser } from "@/lib/api/server"
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { isLoaded, isSignedIn } = useAuth()
-  const router = useRouter()
+  const { userId } = await auth()
+  if (!userId) redirect("/sign-in")
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push("/sign-in")
-    }
-  }, [isLoaded, isSignedIn, router])
-
-  if (!isLoaded || !isSignedIn) return null
+  const user = await getCurrentUser()
+  if (!user?.onboardingCompletedAt) redirect("/onboarding")
 
   return (
     <div className="flex h-screen overflow-hidden">
