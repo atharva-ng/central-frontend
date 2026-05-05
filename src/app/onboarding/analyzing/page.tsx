@@ -14,7 +14,7 @@ const STEPS = [
   { num: "02", label: "Identifying your product and ICP" },
   { num: "03", label: "Detecting brand voice" },
   { num: "04", label: "Finding your competitors" },
-  { num: "05", label: "Pulling keyword data" },
+  { num: "05", label: "Getting compititor data" },
   { num: "06", label: "Building your keyword strategy" },
 ] as const
 

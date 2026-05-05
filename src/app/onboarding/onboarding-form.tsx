@@ -22,8 +22,16 @@ export function OnboardingForm() {
   const [countryCode, setCountryCode] = useState("US")
   const [submitting, setSubmitting] = useState(false)
 
+  function stripProtocol(value: string) {
+    let next = value.trimStart()
+    next = next.replace(/^https:\/\//i, "")
+    next = next.replace(/^http:\/\//i, "")
+    next = next.replace(/^\/+/, "")
+    return next
+  }
+
   function handleSubmit() {
-    const trimmed = url.trim().replace(/^\/+/, "")
+    const trimmed = stripProtocol(url).trim()
     if (!trimmed || submitting) return
 
     const country = COUNTRIES.find((c) => c.code === countryCode)?.name
@@ -70,7 +78,15 @@ export function OnboardingForm() {
               placeholder="yoursite.com"
               className="border-0 shadow-none px-0 h-10 text-sm focus-visible:ring-0 bg-transparent"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => setUrl(stripProtocol(e.target.value))}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text")
+                const cleaned = stripProtocol(pasted)
+                if (cleaned !== pasted) {
+                  e.preventDefault()
+                  setUrl(cleaned)
+                }
+              }}
               disabled={submitting}
             />
           </div>
