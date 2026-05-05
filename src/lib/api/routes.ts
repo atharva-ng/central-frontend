@@ -11,5 +11,7 @@ export const ROUTES = {
   },
   onboarding: {
     begin: "/v1/onboard",
+    steps: "/v1/onboarding-steps",
+    webEntity: "/v1/web-entity",
   },
 } as const

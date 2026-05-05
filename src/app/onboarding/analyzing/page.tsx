@@ -1,25 +1,74 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import { toast } from "sonner"
 import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
-import { WEB_ENTITY } from "@/lib/hack2hire"
+import { ApiError, beginOnboarding } from "@/lib/api/client"
 
 const STEPS = [
-  { num: "01", label: "Reading your website", state: "done" as const },
-  { num: "02", label: "Identifying your product and ICP", state: "done" as const },
-  { num: "03", label: "Detecting brand voice", state: "done" as const },
-  { num: "04", label: "Finding your competitors", state: "done" as const },
-  { num: "05", label: "Pulling keyword data", state: "active" as const },
-  { num: "06", label: "Building your keyword strategy", state: "pending" as const },
-]
-
-const COMPETITORS = WEB_ENTITY.competitors
-  .slice(0, 2)
-  .map((c) => c.url.replace(/^www\./, ""))
+  { num: "01", label: "Reading your website" },
+  { num: "02", label: "Identifying your product and ICP" },
+  { num: "03", label: "Detecting brand voice" },
+  { num: "04", label: "Finding your competitors" },
+  { num: "05", label: "Pulling keyword data" },
+  { num: "06", label: "Building your keyword strategy" },
+] as const
 
 export default function AnalyzingPage() {
+  const router = useRouter()
+  const { getToken } = useAuth()
+  const [website, setWebsite] = useState<string>("")
+
+  useEffect(() => {
+    let params: { websiteUrl: string; country: string } | null = null
+    try {
+      const stored = sessionStorage.getItem("blogengine.pendingOnboarding")
+      if (stored) params = JSON.parse(stored) as { websiteUrl: string; country: string }
+    } catch {
+      // sessionStorage unavailable
+    }
+
+    if (!params) {
+      router.replace("/onboarding")
+      return
+    }
+
+    try {
+      setWebsite(new URL(params.websiteUrl).hostname.replace(/^www\./, ""))
+    } catch {
+      setWebsite(params.websiteUrl)
+    }
+
+    const captured = params
+    async function run() {
+      try {
+        const { webEntityId } = await beginOnboarding(getToken, captured)
+        try {
+          sessionStorage.removeItem("blogengine.pendingOnboarding")
+          window.localStorage.setItem("blogengine.webEntityId", webEntityId)
+        } catch {
+          // storage unavailable; steps API re-supplies the id on next load
+        }
+        router.push("/onboarding/profile")
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? `Couldn't start analysis (${err.status}).`
+            : "Couldn't reach the server. Check your connection."
+        toast.error(message)
+        router.push("/onboarding")
+      }
+    }
+
+    run()
+    // getToken is stable across renders; router is stable — safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function handleEmailMe() {
     toast("We'll email you when your strategy is ready")
   }
@@ -35,7 +84,11 @@ export default function AnalyzingPage() {
         {/* Lede */}
         <div className="flex flex-col gap-3">
           <h1 className="text-[28px] leading-[1.15] font-medium tracking-tight">
-            Reading <span className="font-mono text-primary">{WEB_ENTITY.context.website}</span>
+            {website ? (
+              <>Reading <span className="font-mono text-primary">{website}</span></>
+            ) : (
+              "Reading your website."
+            )}
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Sit tight. We&apos;re studying your site, your competitors, and the search
@@ -43,17 +96,22 @@ export default function AnalyzingPage() {
           </p>
         </div>
 
-        {/* Steps — vertical list, hairline-separated, no card box */}
+        {/* Steps */}
         <div className="flex flex-col gap-3">
           <SectionLede number="A" label="Pipeline" />
           <div className="flex flex-col divide-y divide-border">
-            {STEPS.map((s) => (
-              <AnalysisStep key={s.num} number={s.num} label={s.label} state={s.state} />
+            {STEPS.map((s, i) => (
+              <AnalysisStep
+                key={s.num}
+                number={s.num}
+                label={s.label}
+                state={i < 4 ? "done" : i === 4 ? "active" : "pending"}
+              />
             ))}
           </div>
         </div>
 
-        {/* Live counter — editorial style, big number */}
+        {/* Live counter */}
         <div className="flex flex-col gap-3">
           <SectionLede number="B" label="Signals collected" />
           <div className="flex items-baseline gap-3">
@@ -68,21 +126,12 @@ export default function AnalyzingPage() {
           </div>
         </div>
 
-        {/* Competitors — editorial chip line */}
+        {/* Competitors */}
         <div className="flex flex-col gap-3">
           <SectionLede number="C" label="Competitors found" />
           <div className="flex flex-wrap gap-1.5">
-            {COMPETITORS.map((domain) => (
-              <span
-                key={domain}
-                className="inline-flex items-center gap-1.5 border border-border bg-card rounded-full pl-2 pr-2.5 py-1 font-mono text-xs"
-              >
-                <span className="size-1 rounded-full bg-primary" />
-                {domain}
-              </span>
-            ))}
             <span className="inline-flex items-center px-2.5 py-1 text-xs text-muted-foreground">
-              + searching for more…
+              Searching for competitors…
             </span>
           </div>
         </div>

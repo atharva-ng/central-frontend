@@ -1,15 +1,19 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { Masthead } from "@/components/app/Masthead"
-import { getCurrentUser } from "@/lib/api/server"
+import {
+  ONBOARDING_STEPS,
+  STEP_TO_PAGE,
+  getOnboardingStep,
+} from "@/lib/api/server"
 import { OnboardingForm } from "./onboarding-form"
 
 export default async function OnboardingPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const user = await getCurrentUser()
-  if (user?.onboardingCompletedAt) redirect("/dashboard")
+  const { step } = await getOnboardingStep()
+  if (step !== ONBOARDING_STEPS.USER_CREATED) redirect(STEP_TO_PAGE[step])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { Sidebar } from "@/components/app/Sidebar"
-import { getCurrentUser } from "@/lib/api/server"
 
 export default async function DashboardLayout({
   children,
@@ -10,9 +9,6 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
-
-  const user = await getCurrentUser()
-  if (!user?.onboardingCompletedAt) redirect("/onboarding")
 
   return (
     <div className="flex h-screen overflow-hidden">

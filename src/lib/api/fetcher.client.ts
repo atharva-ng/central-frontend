@@ -5,6 +5,8 @@ import {
   type RetryOptions,
 } from "./core"
 
+export type ClerkTokenGetter = (options?: { skipCache?: boolean }) => Promise<string | null>
+
 /**
  * Client-side fetch — call from Client Components. Pass `getToken` from
  * `useAuth()` so the caller controls how the token is acquired.
@@ -13,12 +15,13 @@ import {
  *   const data = await apiFetchClient(getToken, "/v1/users/me")
  */
 export async function apiFetchClient<T = unknown>(
-  getToken: () => Promise<string | null>,
+  getToken: ClerkTokenGetter,
   path: string,
   options: FetchOptions = {},
   retry?: RetryOptions,
 ): Promise<T> {
-  const token = await getToken()
+  // Force a fresh Clerk token so we do not forward a cached expired JWT.
+  const token = await getToken({ skipCache: true })
   return retry
     ? requestWithRetry<T>(path, token, options, retry)
     : request<T>(path, token, options)

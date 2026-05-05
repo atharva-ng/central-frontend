@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@clerk/nextjs"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -16,16 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { COUNTRIES } from "@/lib/countries"
-import { ApiError, beginOnboarding } from "@/lib/api/client"
 
 export function OnboardingForm() {
   const router = useRouter()
-  const { getToken } = useAuth()
   const [url, setUrl] = useState("")
   const [countryCode, setCountryCode] = useState("US")
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit() {
+  function handleSubmit() {
     const trimmed = url.trim().replace(/^\/+/, "")
     if (!trimmed || submitting) return
 
@@ -37,19 +34,15 @@ export function OnboardingForm() {
 
     setSubmitting(true)
     try {
-      await beginOnboarding(getToken, {
-        websiteUrl: `https://${trimmed}`,
-        country,
-      })
-      router.push("/onboarding/analyzing")
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? `Couldn't start analysis (${err.status}).`
-          : "Couldn't reach the server. Check your connection."
-      toast.error(message)
-      setSubmitting(false)
+      sessionStorage.setItem(
+        "blogengine.pendingOnboarding",
+        JSON.stringify({ websiteUrl: `https://${trimmed}`, country }),
+      )
+    } catch {
+      // sessionStorage may be unavailable; analyzing page will redirect back
+      // gracefully if the key is missing.
     }
+    router.push("/onboarding/analyzing")
   }
 
   return (
