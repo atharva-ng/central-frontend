@@ -21,7 +21,7 @@ All routes in the app. Update status as screens are built.
 | 11a | Keywords — Add Keyword Dialog (8 states + plan cap) | nested on Keywords | ✅ Done |
 | 12 | Article Review + Editor (Tiptap) | `/(dashboard)/articles/[id]` | ✅ Done |
 | 12a | Articles list — filterable table | `/(dashboard)/articles` | ✅ Done |
-| 13 | Settings | `/(dashboard)/settings` | 🔲 Not Started |
+| 13 | Settings | `/(dashboard)/settings` | ✅ Done |
 
 ## Status Key
 - ✅ Done

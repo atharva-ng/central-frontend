@@ -3,10 +3,17 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
-import { ArrowLeft, ArrowRight, Clipboard, Minus, Plus } from "lucide-react"
+import { ArrowLeft, ArrowRight, Clipboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
@@ -22,7 +29,7 @@ interface FormValues {
 export default function PublishingPage() {
   const router = useRouter()
   const [platform, setPlatform] = useState<Platform>(null)
-  const [cadence, setCadence] = useState(10)
+  const [cadence, setCadence] = useState<"3" | "5" | "10">("10")
   const [publishMode, setPublishMode] = useState<"review" | "auto">("review")
 
   const { register } = useForm<FormValues>()
@@ -110,38 +117,23 @@ export default function PublishingPage() {
           {/* Section B — Cadence */}
           <section className="flex flex-col gap-5">
             <SectionLede number="B" label="Cadence" />
-            <div className="flex items-end justify-between gap-6">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  Articles per week
-                </Label>
-                <p className="text-xs text-muted-foreground/80">
-                  Recommended for your domain: 5–10
-                </p>
-              </div>
-              <div className="flex items-center gap-1 border border-border rounded-full p-1">
-                <button
-                  type="button"
-                  onClick={() => setCadence((v) => Math.max(1, v - 1))}
-                  disabled={cadence <= 1}
-                  className="size-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  aria-label="Decrease"
-                >
-                  <Minus className="size-3.5" />
-                </button>
-                <span className="font-mono text-base tabular-nums w-7 text-center font-medium">
-                  {cadence}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCadence((v) => Math.min(40, v + 1))}
-                  disabled={cadence >= 40}
-                  className="size-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  aria-label="Increase"
-                >
-                  <Plus className="size-3.5" />
-                </button>
-              </div>
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Articles per week
+              </Label>
+              <p className="text-xs text-muted-foreground/80 -mt-0.5">
+                Recommended for your domain: 5–10
+              </p>
+              <Select value={cadence} onValueChange={(v) => v && setCadence(v as "3" | "5" | "10")}>
+                <SelectTrigger className="w-60">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 articles per week</SelectItem>
+                  <SelectItem value="5">5 articles per week</SelectItem>
+                  <SelectItem value="10">10 articles per week</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </section>
 
