@@ -5,6 +5,7 @@ import { type Editor } from "@tiptap/react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import {
   Check,
+  Download,
   ExternalLink,
   Pencil,
   Trash2,
@@ -43,6 +44,21 @@ export function ImageBubbleMenu({ editor }: { editor: Editor | null }) {
   function cancelAlt() {
     setEditingAlt(false)
     setAltText("")
+  }
+
+  function downloadImage() {
+    if (!editor) return
+    const src = editor.getAttributes("image").src as string | undefined
+    if (!src) return
+    const a = document.createElement("a")
+    a.href = src
+    a.download = editor.getAttributes("image").alt || "image"
+    // For external URLs the browser may open instead of download — that's expected
+    a.target = "_blank"
+    a.rel = "noopener noreferrer"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   function deleteImage() {
@@ -91,6 +107,7 @@ export function ImageBubbleMenu({ editor }: { editor: Editor | null }) {
         ) : (
           <>
             <IconBtn icon={Type} label="Edit alt text" onClick={startEditAlt} />
+            <IconBtn icon={Download} label="Download image" onClick={downloadImage} />
             <Sep />
             <IconBtn
               icon={Trash2}
