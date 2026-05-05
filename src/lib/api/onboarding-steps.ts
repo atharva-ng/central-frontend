@@ -3,6 +3,7 @@ export const ONBOARDING_STEPS = {
   WEBENTITY_CREATED: "WEBENTITY_CREATED",
   CONTEXT_CREATED: "CONTEXT_CREATED",
   FINALISED: "FINALISED",
+  SITE_INTELLIGENCE_DONE: "SITE_INTELLIGENCE_DONE",
 } as const
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[keyof typeof ONBOARDING_STEPS]
@@ -69,6 +70,7 @@ export const STEP_TO_PAGE: Record<OnboardingStep, string> = {
   WEBENTITY_CREATED: "/onboarding/analyzing",
   CONTEXT_CREATED: "/onboarding/profile",
   FINALISED: "/onboarding/strategy",
+  SITE_INTELLIGENCE_DONE: "/dashboard",
 }
 
 const ONBOARDING_STEP_ALIASES: Record<string, OnboardingStep> = {

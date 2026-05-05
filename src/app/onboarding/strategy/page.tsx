@@ -8,6 +8,7 @@ import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
 import { WEB_ENTITY } from "@/lib/hack2hire"
+import { ONBOARDING_STEPS, useOnboardingStepPolling } from "@/lib/api/client"
 
 const STEPS = [
   { num: "01", label: "Business profile confirmed", state: "done" as const },
@@ -26,6 +27,8 @@ const COMPETITOR_PULL = WEB_ENTITY.competitors.map((c, i) => ({
 
 export default function StrategyPage() {
   const [emailRequested, setEmailRequested] = useState(false)
+
+  useOnboardingStepPolling({ expectedStep: ONBOARDING_STEPS.FINALISED })
 
   function handleEmailMe() {
     toast("Got it — we'll email you when your strategy is ready")

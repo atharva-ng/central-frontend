@@ -11,7 +11,7 @@ import {
   ApiError,
   ONBOARDING_STEPS,
   beginOnboarding,
-  fetchOnboardingStepClient,
+  useOnboardingStepPolling,
 } from "@/lib/api/client"
 import type { OnboardingStep } from "@/lib/api/client"
 
@@ -26,9 +26,6 @@ const STEPS = [
 
 const PENDING_KEY = "blogengine.pendingOnboarding"
 const WEB_ENTITY_ID_KEY = "blogengine.webEntityId"
-// 3s feels responsive without hammering the backend during a multi-second
-// pipeline. Tune up if backend rate-limits the steps endpoint.
-const POLL_INTERVAL_MS = 3000
 
 interface AnalyzingClientProps {
   initialStep: OnboardingStep
@@ -49,10 +46,14 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
   const [website, setWebsite] = useState<string>(() =>
     initialWebsiteUrl ? deriveHostname(initialWebsiteUrl) : "",
   )
+  // Gate polling until any one-time init (beginOnboarding) has committed —
+  // otherwise the first poll can race the POST and yank the user back.
+  const [pollingEnabled, setPollingEnabled] = useState(
+    initialStep === ONBOARDING_STEPS.WEBENTITY_CREATED,
+  )
 
   useEffect(() => {
     let cancelled = false
-    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     let pending: { websiteUrl: string; country: string } | null = null
     try {
@@ -75,30 +76,6 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
     if (initialStep === ONBOARDING_STEPS.USER_CREATED && !pending) {
       router.replace("/onboarding")
       return
-    }
-
-    async function poll() {
-      if (cancelled) return
-      try {
-        const { step } = await fetchOnboardingStepClient(getToken)
-        if (cancelled) return
-        if (step === ONBOARDING_STEPS.CONTEXT_CREATED) {
-          router.push("/onboarding/profile")
-          return
-        }
-        if (step === ONBOARDING_STEPS.FINALISED) {
-          router.push("/onboarding/strategy")
-          return
-        }
-        // USER_CREATED here would mean backend rolled back — extremely
-        // unexpected. Keep polling rather than yanking the user away.
-      } catch {
-        // Network hiccup — quietly try again on the next tick. Surfacing a
-        // toast on every failure during a long pipeline would be noisy.
-      }
-      if (!cancelled) {
-        timeoutId = setTimeout(poll, POLL_INTERVAL_MS)
-      }
     }
 
     async function run() {
@@ -127,18 +104,22 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
           return
         }
       }
-      poll()
+      if (!cancelled) setPollingEnabled(true)
     }
 
     run()
 
     return () => {
       cancelled = true
-      if (timeoutId) clearTimeout(timeoutId)
     }
     // getToken/router are stable; initialStep/initialWebsiteUrl are server props.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useOnboardingStepPolling({
+    expectedStep: ONBOARDING_STEPS.WEBENTITY_CREATED,
+    enabled: pollingEnabled,
+  })
 
   function handleEmailMe() {
     toast("We'll email you when your strategy is ready")

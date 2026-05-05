@@ -16,6 +16,7 @@ export type {
   ProcessSiteIntelligenceResponse,
 } from "./onboarding.client"
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
+export { useOnboardingStepPolling } from "./use-onboarding-step-polling"
 export type {
   BusinessContext,
   Competitor,
