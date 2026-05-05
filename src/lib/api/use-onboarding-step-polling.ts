@@ -6,17 +6,20 @@ import { useAuth } from "@clerk/nextjs"
 import { fetchOnboardingStepClient } from "./onboarding.client"
 import { STEP_TO_PAGE, type OnboardingStep } from "./onboarding-steps"
 
-const DEFAULT_POLL_INTERVAL_MS = 3000
+const DEFAULT_INITIAL_INTERVAL_MS = 3000
+const DEFAULT_MAX_INTERVAL_MS = 30_000
 
 interface Options {
   expectedStep: OnboardingStep
-  intervalMs?: number
+  initialIntervalMs?: number
+  maxIntervalMs?: number
   enabled?: boolean
 }
 
 export function useOnboardingStepPolling({
   expectedStep,
-  intervalMs = DEFAULT_POLL_INTERVAL_MS,
+  initialIntervalMs = DEFAULT_INITIAL_INTERVAL_MS,
+  maxIntervalMs = DEFAULT_MAX_INTERVAL_MS,
   enabled = true,
 }: Options) {
   const router = useRouter()
@@ -27,6 +30,7 @@ export function useOnboardingStepPolling({
 
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let nextDelayMs = initialIntervalMs
 
     async function poll() {
       if (cancelled) return
@@ -42,7 +46,10 @@ export function useOnboardingStepPolling({
         // during a long pipeline would be noisy.
       }
       if (!cancelled) {
-        timeoutId = setTimeout(poll, intervalMs)
+        timeoutId = setTimeout(poll, nextDelayMs)
+        // Backoff after each tick — pipeline runs are often longer than the
+        // initial 3s interval suggests, so we ease off rather than hammer.
+        nextDelayMs = Math.min(nextDelayMs * 2, maxIntervalMs)
       }
     }
 
@@ -52,5 +59,5 @@ export function useOnboardingStepPolling({
       cancelled = true
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [expectedStep, intervalMs, enabled, getToken, router])
+  }, [expectedStep, initialIntervalMs, maxIntervalMs, enabled, getToken, router])
 }

@@ -130,9 +130,6 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
 
     let finalised = false
     try {
-      // Form-data PATCH ops aren't wired here yet — the form reads from a
-      // static fixture. The atomic finalise call still flips the lock so
-      // downstream pages see the right step.
       const patchResult = await patchWebEntity(getToken, {
         webEntityId: webEntity.id,
         ops: [],

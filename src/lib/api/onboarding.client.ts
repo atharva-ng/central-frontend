@@ -31,7 +31,7 @@ export async function beginOnboarding(
   getToken: ClerkTokenGetter,
   payload: BeginOnboardingPayload,
 ): Promise<BeginOnboardingResponse> {
-  return apiFetchClient<BeginOnboardingResponse>(
+  const res = await apiFetchClient<ApiResponse<BeginOnboardingResponse>>(
     getToken,
     ROUTES.onboarding.begin,
     {
@@ -39,6 +39,7 @@ export async function beginOnboarding(
       body: payload,
     },
   )
+  return res.data
 }
 
 export type PatchOp = {
@@ -69,7 +70,7 @@ export async function patchWebEntity(
   getToken: ClerkTokenGetter,
   payload: PatchWebEntityPayload,
 ): Promise<PatchWebEntityResponse> {
-  return apiFetchClient<PatchWebEntityResponse>(
+  const res = await apiFetchClient<ApiResponse<PatchWebEntityResponse>>(
     getToken,
     ROUTES.onboarding.webEntity,
     {
@@ -77,6 +78,7 @@ export async function patchWebEntity(
       body: payload,
     },
   )
+  return res.data
 }
 
 /**
