@@ -3,18 +3,9 @@
 import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input } from "@/components/ui"
 import { FunnelBadge, type Funnel } from "@/components/app/FunnelBadge"
-import { FUNNEL_FILTER_OPTIONS, type FunnelFilter } from "@/constants/funnels"
+import { FUNNEL_FILTER_OPTIONS, type FunnelFilter } from "@/constants"
 import { cn } from "@/lib/utils"
 
 interface SwapKeyword {

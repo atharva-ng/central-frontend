@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ArrowLeft, Sparkles } from "lucide-react"
-import { APP_ROUTES } from "@/constants/routes"
+import { APP_ROUTES } from "@/constants"
 
 interface TopbarProps {
   title: string

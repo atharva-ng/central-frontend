@@ -4,27 +4,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { ArrowLeft, ArrowRight, Clipboard } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { cn } from "@/lib/utils"
-import { SectionLede } from "@/components/app/SectionLede"
-import { Masthead } from "@/components/app/Masthead"
-import { FramerIcon } from "@/components/app/BrandIcons"
-import {
-  CADENCE_OPTIONS,
-  type Cadence,
-  type PublishMode,
-  type PublishPlatform,
-} from "@/constants/publishing"
-import { APP_ROUTES } from "@/constants/routes"
+import { FramerIcon, Masthead, SectionLede } from "@/components/app"
+import { APP_ROUTES, CADENCE_OPTIONS, type Cadence, type PublishMode, type PublishPlatform } from "@/constants"
 
 type Platform = PublishPlatform | null
 

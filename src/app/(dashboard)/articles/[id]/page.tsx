@@ -25,60 +25,9 @@ import {
   format,
   parseISO,
 } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { SectionLede } from "@/components/app/SectionLede"
-import { FunnelBadge } from "@/components/app/FunnelBadge"
-import { StatusBadge } from "@/components/app/StatusBadge"
-import { SegmentedControl } from "@/components/app/SegmentedControl"
-import { OpportunityScore } from "@/components/app/OpportunityScore"
-import {
-  ArticleEditorContent,
-  useArticleEditor,
-} from "@/components/app/ArticleEditor"
-import { ArticleToolbar } from "@/components/app/ArticleToolbar"
-import {
-  ImageBubbleMenu,
-  LinkBubbleMenu,
-} from "@/components/app/ArticleBubbleMenus"
-import { IndexlyLogo } from "@/components/app/IndexlyLogo"
-import { type ArticleStatus } from "@/constants/article-status"
-import { META_DESC_MAX, META_TITLE_MAX } from "@/constants/articles"
-import { BRAND } from "@/constants/brand"
-import { APP_ROUTES } from "@/constants/routes"
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@/components/ui"
+import { ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SectionLede, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
+import { APP_ROUTES, BRAND, META_DESC_MAX, META_TITLE_MAX, type ArticleStatus } from "@/constants"
 import { ARTICLE, clusterLabel, SECTION_HEADINGS, type ArticleImage } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
 

@@ -6,30 +6,9 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
 import { ArrowLeft, ArrowRight, ExternalLink, Loader2, RefreshCw, X } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { TagInput } from "@/components/app/TagInput"
-import { SectionLede } from "@/components/app/SectionLede"
-import { Masthead } from "@/components/app/Masthead"
-import { MAX_COMPETITORS } from "@/constants/keywords"
-import { APP_ROUTES } from "@/constants/routes"
-import { STORAGE_KEYS } from "@/constants/storage-keys"
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@/components/ui"
+import { Masthead, SectionLede, TagInput } from "@/components/app"
+import { APP_ROUTES, MAX_COMPETITORS, STORAGE_KEYS } from "@/constants"
 import { COUNTRIES } from "@/lib/countries"
 import { ApiError, patchWebEntity, processSiteIntelligence } from "@/lib/api/client"
 import type { WebEntity } from "@/lib/api/client"

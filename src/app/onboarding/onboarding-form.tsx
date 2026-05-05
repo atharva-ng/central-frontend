@@ -4,18 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { APP_ROUTES } from "@/constants/routes"
-import { STORAGE_KEYS } from "@/constants/storage-keys"
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { APP_ROUTES, STORAGE_KEYS } from "@/constants"
 import { COUNTRIES } from "@/lib/countries"
 
 export function OnboardingForm() {

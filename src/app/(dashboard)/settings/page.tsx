@@ -2,35 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { ChevronDown, ExternalLink, Clipboard } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { SectionLede } from "@/components/app/SectionLede"
-import { Topbar } from "@/components/app/Topbar"
-import { FunnelBadge } from "@/components/app/FunnelBadge"
-import { OpportunityScore } from "@/components/app/OpportunityScore"
-import { TagInput } from "@/components/app/TagInput"
-import { FramerIcon } from "@/components/app/BrandIcons"
-import {
-  CADENCE_OPTIONS,
-  type Cadence,
-  type PublishMode,
-  type PublishPlatform as Platform,
-} from "@/constants/publishing"
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
+import { FunnelBadge, FramerIcon, OpportunityScore, SectionLede, TagInput, Topbar } from "@/components/app"
+import { CADENCE_OPTIONS, type Cadence, type PublishMode, type PublishPlatform as Platform } from "@/constants"
 import { WEB_ENTITY } from "@/lib/hack2hire"
 import {
   toCluster,

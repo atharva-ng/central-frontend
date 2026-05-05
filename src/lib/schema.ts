@@ -10,7 +10,7 @@
 export type MongoObjectId = { $oid: string }
 export type MongoDate = { $date: string }
 
-import type { Intent } from "@/constants/intent"
+import type { Intent } from "@/constants"
 export type { Intent }
 
 // ── web_entities ────────────────────────────────────────────────────────────

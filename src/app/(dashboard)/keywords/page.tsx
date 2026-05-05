@@ -2,24 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Topbar } from "@/components/app/Topbar"
-import { SectionLede } from "@/components/app/SectionLede"
-import { StatusBadge } from "@/components/app/StatusBadge"
-import { FunnelBadge } from "@/components/app/FunnelBadge"
-import { OpportunityScore } from "@/components/app/OpportunityScore"
-import { AddKeywordDialog, PlanCapDialog } from "@/components/app/AddKeywordDialog"
-import {
-  KEYWORD_STATUS_LABEL,
-  KEYWORD_STATUS_TO_BADGE,
-} from "@/constants/keyword-status"
+import { Button, Skeleton, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { AddKeywordDialog, FunnelBadge, OpportunityScore, PlanCapDialog, SectionLede, StatusBadge, Topbar } from "@/components/app"
+import { KEYWORD_STATUS_LABEL, KEYWORD_STATUS_TO_BADGE } from "@/constants"
 import {
   toCluster,
   useKeywordData,

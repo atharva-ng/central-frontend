@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { FUNNEL_BADGE_CLASS, type Funnel } from "@/constants/funnels"
+import { FUNNEL_BADGE_CLASS, type Funnel } from "@/constants"
 
 export type { Funnel }
 

@@ -9,19 +9,9 @@ import {
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs"
-import { Topbar } from "@/components/app/Topbar"
-import { StatusBadge } from "@/components/app/StatusBadge"
-import { FunnelBadge } from "@/components/app/FunnelBadge"
-import { ARTICLE_FILTERS, type ArticleStatus } from "@/constants/article-status"
-import type { Funnel } from "@/constants/funnels"
-import { APP_ROUTES } from "@/constants/routes"
+import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
+import { FunnelBadge, StatusBadge, Topbar } from "@/components/app"
+import { APP_ROUTES, ARTICLE_FILTERS, type ArticleStatus, type Funnel } from "@/constants"
 import { cn } from "@/lib/utils"
 
 interface ArticleRow {

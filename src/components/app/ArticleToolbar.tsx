@@ -19,14 +19,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { MAX_IMAGE_BYTES } from "@/constants/articles"
+import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
+import { MAX_IMAGE_BYTES } from "@/constants"
 import { cn } from "@/lib/utils"
 
 interface ArticleToolbarProps {

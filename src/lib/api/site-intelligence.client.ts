@@ -1,5 +1,4 @@
-import { toFunnel, type Funnel } from "@/constants/funnels"
-import { toKeywordStatus, type KeywordStatus } from "@/constants/keyword-status"
+import { toFunnel, toKeywordStatus, type Funnel, type KeywordStatus } from "@/constants"
 import { apiFetchClient } from "./fetcher.client"
 import type { ClerkTokenGetter } from "./fetcher.client"
 import { ROUTES } from "./routes"

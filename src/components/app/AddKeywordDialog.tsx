@@ -3,22 +3,10 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, Loader2, Lock } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Skeleton } from "@/components/ui"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
-import { FUNNELS, type Funnel } from "@/constants/funnels"
-import { INTENT_SCORE_BOOST, INTENTS, type Intent } from "@/constants/intent"
-import { MANUAL_KEYWORD_PLAN_LIMIT } from "@/constants/keywords"
+import { FUNNELS, INTENT_SCORE_BOOST, INTENTS, MANUAL_KEYWORD_PLAN_LIMIT, type Funnel, type Intent } from "@/constants"
 import type { Cluster, ClusterKeyword } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 

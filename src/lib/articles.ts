@@ -1,7 +1,5 @@
 import { addDays, differenceInHours, format, formatDistanceToNowStrict, isBefore, parseISO, startOfDay } from "date-fns"
-import type { ArticleStatus } from "@/constants/article-status"
-import { ARTICLE_LOCK_DAYS_OFFSET } from "@/constants/articles"
-import type { Funnel } from "@/constants/funnels"
+import { ARTICLE_LOCK_DAYS_OFFSET, type ArticleStatus, type Funnel } from "@/constants"
 
 export { ARTICLE_TYPES } from "@/constants/articles"
 

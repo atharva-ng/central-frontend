@@ -5,17 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
 import { toast } from "sonner"
-import { AnalysisStep } from "@/components/app/AnalysisStep"
-import { SectionLede } from "@/components/app/SectionLede"
-import { Masthead } from "@/components/app/Masthead"
-import {
-  STRATEGY_COMPETITOR_STAGGER_MS,
-  STRATEGY_COUNTER_TICK_MS,
-  STRATEGY_DASHBOARD_REDIRECT_MS,
-  STRATEGY_ELAPSED_POLL_MS,
-  STRATEGY_STEP_DURATIONS_MS,
-} from "@/constants/onboarding-timing"
-import { APP_ROUTES } from "@/constants/routes"
+import { AnalysisStep, Masthead, SectionLede } from "@/components/app"
+import { APP_ROUTES, STRATEGY_COMPETITOR_STAGGER_MS, STRATEGY_COUNTER_TICK_MS, STRATEGY_DASHBOARD_REDIRECT_MS, STRATEGY_ELAPSED_POLL_MS, STRATEGY_STEP_DURATIONS_MS } from "@/constants"
 import { WEB_ENTITY } from "@/lib/hack2hire"
 import { ONBOARDING_STEPS, useOnboardingStepPolling } from "@/lib/api/client"
 

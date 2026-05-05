@@ -3,10 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
-import {
-  ONBOARDING_POLL_INITIAL_MS,
-  ONBOARDING_POLL_MAX_MS,
-} from "@/constants/polling"
+import { ONBOARDING_POLL_INITIAL_MS, ONBOARDING_POLL_MAX_MS } from "@/constants"
 import { fetchOnboardingStepClient } from "./onboarding.client"
 import { STEP_TO_PAGE, type OnboardingStep } from "./onboarding-steps"
 

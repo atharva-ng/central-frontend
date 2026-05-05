@@ -13,8 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
-import { APP_ROUTES } from "@/constants/routes"
-import { STORAGE_KEYS } from "@/constants/storage-keys"
+import { APP_ROUTES, STORAGE_KEYS } from "@/constants"
 import { cn } from "@/lib/utils"
 import { IndexlyLogo, IndexlyMark } from "@/components/app/IndexlyLogo"
 

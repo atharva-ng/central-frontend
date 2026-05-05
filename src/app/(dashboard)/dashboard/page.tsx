@@ -32,19 +32,8 @@ import {
   startOfWeek,
 } from "date-fns"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Topbar } from "@/components/app/Topbar"
-import { StatusBadge } from "@/components/app/StatusBadge"
-import { EditArticleSheet } from "@/components/app/EditArticleSheet"
-import { AddArticleSheet } from "@/components/app/AddArticleSheet"
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Skeleton } from "@/components/ui"
+import { AddArticleSheet, EditArticleSheet, StatusBadge, Topbar } from "@/components/app"
 import {
   SEED_ARTICLES,
   canDropOn,

@@ -4,11 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
 import { toast } from "sonner"
-import { AnalysisStep } from "@/components/app/AnalysisStep"
-import { SectionLede } from "@/components/app/SectionLede"
-import { Masthead } from "@/components/app/Masthead"
-import { APP_ROUTES } from "@/constants/routes"
-import { STORAGE_KEYS } from "@/constants/storage-keys"
+import { AnalysisStep, Masthead, SectionLede } from "@/components/app"
+import { APP_ROUTES, STORAGE_KEYS } from "@/constants"
 import {
   ApiError,
   ONBOARDING_STEPS,

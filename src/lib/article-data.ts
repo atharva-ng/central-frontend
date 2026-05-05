@@ -1,9 +1,7 @@
 // Article record — represents what comes back from the article store.
 // Used by the Tiptap editor screen at /articles/[id].
 
-import type { ArticleStatus } from "@/constants/article-status"
-import type { ArticleDestination, ArticleImagePosition } from "@/constants/articles"
-import type { Funnel } from "@/constants/funnels"
+import type { ArticleDestination, ArticleImagePosition, ArticleStatus, Funnel } from "@/constants"
 
 export interface ArticleImage {
   position: ArticleImagePosition
