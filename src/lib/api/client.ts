@@ -15,6 +15,14 @@ export type {
   ProcessSiteIntelligencePayload,
   ProcessSiteIntelligenceResponse,
 } from "./onboarding.client"
+export { getKeywordData } from "./site-intelligence.client"
+export type {
+  ClusterDTO,
+  KeywordDTO,
+  KeywordDataResponse,
+  KeywordDataUsage,
+  KeywordStatus,
+} from "./site-intelligence.client"
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
 export { useOnboardingStepPolling } from "./use-onboarding-step-polling"
 export type {

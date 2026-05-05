@@ -16,5 +16,6 @@ export const ROUTES = {
   },
   siteIntelligence: {
     process: "/v1/site-intelligence/process",
+    keywordData: "/v1/site-intelligence/keyword-data",
   },
 } as const
