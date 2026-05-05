@@ -13,6 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
+import { APP_ROUTES } from "@/constants/routes"
+import { STORAGE_KEYS } from "@/constants/storage-keys"
 import { cn } from "@/lib/utils"
 import { IndexlyLogo, IndexlyMark } from "@/components/app/IndexlyLogo"
 
@@ -23,13 +25,13 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: "Schedule", href: "/dashboard", icon: CalendarDays },
-  { label: "Keywords", href: "/keywords", icon: Search },
-  { label: "Articles", href: "/articles", icon: FileText },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Schedule", href: APP_ROUTES.dashboard, icon: CalendarDays },
+  { label: "Keywords", href: APP_ROUTES.keywords, icon: Search },
+  { label: "Articles", href: APP_ROUTES.articles, icon: FileText },
+  { label: "Settings", href: APP_ROUTES.settings, icon: Settings },
 ]
 
-const STORAGE_KEY = "indexly:sidebar-collapsed"
+const STORAGE_KEY = STORAGE_KEYS.sidebarCollapsed
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -64,7 +66,7 @@ export function Sidebar() {
         {collapsed ? (
           <IndexlyMark className="mx-auto" />
         ) : (
-          <Link href="/dashboard" className="flex items-center gap-2 px-1">
+          <Link href={APP_ROUTES.dashboard} className="flex items-center gap-2 px-1">
             <IndexlyMark />
             <IndexlyLogo />
           </Link>
@@ -75,8 +77,8 @@ export function Sidebar() {
       <nav className="flex-1 flex flex-col gap-1 p-2 mt-4">
         {NAV.map((item) => {
           const active =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
+            item.href === APP_ROUTES.dashboard
+              ? pathname === APP_ROUTES.dashboard
               : pathname.startsWith(item.href)
           const Icon = item.icon
 

@@ -1,5 +1,7 @@
-import type { Funnel } from "@/components/app/FunnelBadge"
-import type { Intent } from "./schema"
+import { FUNNELS, type Funnel } from "@/constants/funnels"
+import { INTENT_SCORE_BOOST, INTENTS, type Intent } from "@/constants/intent"
+import { MANUAL_KEYWORD_PLAN_LIMIT } from "@/constants/keywords"
+import type { KeywordStatus } from "@/constants/keyword-status"
 
 // `Cluster` and `ClusterKeyword` are UI-layer concepts not yet present in the
 // backend dump. They wrap the schema-level CompetitorKeyword with
@@ -15,7 +17,7 @@ export interface ClusterKeyword {
   cpc?: number
   score: number
   /** Lifecycle status of the article tied to this keyword. */
-  status: "generated" | "scheduled" | "queued"
+  status: KeywordStatus
   scheduledFor?: string // for "Scheduled for Feb 26"
   manuallyAdded?: boolean
 }
@@ -155,7 +157,7 @@ export const CLUSTERS: Cluster[] = [
   },
 ]
 
-export const PLAN_LIMIT = 10
+export const PLAN_LIMIT = MANUAL_KEYWORD_PLAN_LIMIT
 
 export interface KeywordLookup {
   keyword: string
@@ -179,16 +181,14 @@ export function lookupKeyword(query: string): KeywordLookup | null {
   const volume = 200 + ((hash * 17) % 4000)
   const difficulty = 12 + (hash % 30)
   const cpc = +(1.5 + (hash % 80) / 10).toFixed(2)
-  const funnels: Funnel[] = ["TOFU", "MOFU", "BOFU"]
-  const suggestedFunnel = funnels[hash % 3]
-  const intents: Intent[] = ["informational", "transactional", "commercial", "navigational"]
-  const intent = intents[hash % intents.length]
+  const suggestedFunnel = FUNNELS[hash % FUNNELS.length]
+  const intent = INTENTS[hash % INTENTS.length]
   const clusters = CLUSTERS.map((c) => c.name)
   const cluster = clusters[hash % clusters.length]
 
   // 0–100 opportunity score. Volume pulls up; difficulty pulls down; transactional
   // intent gets a small boost. Clamped to 55–95 so scored keywords feel ranking-worthy.
-  const intentBoost = intent === "transactional" ? 8 : intent === "commercial" ? 5 : 2
+  const intentBoost = INTENT_SCORE_BOOST[intent]
   const raw = 60 + Math.floor(volume / 120) - Math.floor(difficulty * 0.7) + intentBoost
   const score = Math.min(95, Math.max(55, raw))
 

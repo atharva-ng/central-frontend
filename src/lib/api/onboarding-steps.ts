@@ -1,3 +1,5 @@
+import { APP_ROUTES } from "@/constants/routes"
+
 export const ONBOARDING_STEPS = {
   USER_CREATED: "USER_CREATED",
   WEBENTITY_CREATED: "WEBENTITY_CREATED",
@@ -66,11 +68,11 @@ export type Competitor = {
  * flips to `CONTEXT_CREATED`.
  */
 export const STEP_TO_PAGE: Record<OnboardingStep, string> = {
-  USER_CREATED: "/onboarding",
-  WEBENTITY_CREATED: "/onboarding/analyzing",
-  CONTEXT_CREATED: "/onboarding/profile",
-  FINALISED: "/onboarding/strategy",
-  SITE_INTELLIGENCE_DONE: "/dashboard",
+  USER_CREATED: APP_ROUTES.onboarding,
+  WEBENTITY_CREATED: APP_ROUTES.onboardingAnalyzing,
+  CONTEXT_CREATED: APP_ROUTES.onboardingProfile,
+  FINALISED: APP_ROUTES.onboardingStrategy,
+  SITE_INTELLIGENCE_DONE: APP_ROUTES.dashboard,
 }
 
 const ONBOARDING_STEP_ALIASES: Record<string, OnboardingStep> = {

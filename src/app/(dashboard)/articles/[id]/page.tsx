@@ -62,7 +62,7 @@ import {
 } from "@/components/ui/popover"
 import { SectionLede } from "@/components/app/SectionLede"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
-import { StatusBadge, type ArticleStatus } from "@/components/app/StatusBadge"
+import { StatusBadge } from "@/components/app/StatusBadge"
 import { SegmentedControl } from "@/components/app/SegmentedControl"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
 import {
@@ -75,11 +75,12 @@ import {
   LinkBubbleMenu,
 } from "@/components/app/ArticleBubbleMenus"
 import { IndexlyLogo } from "@/components/app/IndexlyLogo"
+import { type ArticleStatus } from "@/constants/article-status"
+import { META_DESC_MAX, META_TITLE_MAX } from "@/constants/articles"
+import { BRAND } from "@/constants/brand"
+import { APP_ROUTES } from "@/constants/routes"
 import { ARTICLE, clusterLabel, SECTION_HEADINGS, type ArticleImage } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
-
-const META_TITLE_MAX = 60
-const META_DESC_MAX = 155
 
 type ViewMode = "Edit" | "Preview"
 
@@ -132,7 +133,7 @@ export default function ArticleReviewPage() {
       <header className="border-b border-border shrink-0 bg-background flex items-center px-6 gap-4 h-14">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Link
-            href="/articles"
+            href={APP_ROUTES.articles}
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="size-3.5" />
@@ -364,7 +365,7 @@ export default function ArticleReviewPage() {
                 <>
                   <p className="inline-flex items-center gap-1.5 text-[11px] text-chart-3">
                     <CheckCircle2 className="size-3.5" />
-                    Connected to <span className="font-mono">yoursite.framer.website</span>
+                    Connected to <span className="font-mono">{BRAND.framerHost}</span>
                   </p>
                   <Button
                     size="sm"
@@ -494,7 +495,7 @@ export default function ArticleReviewPage() {
             <DialogTitle>Publish to Framer</DialogTitle>
             <DialogDescription className="text-sm">
               This creates a new CMS item in your Framer project. It can&apos;t be
-              undone from Indexly after publishing.
+              undone from {BRAND.name} after publishing.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-md border border-border bg-muted/40 p-3 flex flex-col gap-1.5">
@@ -671,7 +672,7 @@ function StatusFootnote({ status }: { status: ArticleStatus }) {
           href="#"
           className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-mono truncate max-w-[260px] hover:text-foreground transition-colors"
         >
-          yoursite.framer.website/{ARTICLE.url_slug}
+          {BRAND.framerHost}/{ARTICLE.url_slug}
           <ExternalLink className="size-3" />
         </a>
       </>

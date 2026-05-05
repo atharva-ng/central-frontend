@@ -18,8 +18,15 @@ import { cn } from "@/lib/utils"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
 import { FramerIcon } from "@/components/app/BrandIcons"
+import {
+  CADENCE_OPTIONS,
+  type Cadence,
+  type PublishMode,
+  type PublishPlatform,
+} from "@/constants/publishing"
+import { APP_ROUTES } from "@/constants/routes"
 
-type Platform = "framer" | "manual" | null
+type Platform = PublishPlatform | null
 
 interface FormValues {
   framerSiteUrl: string
@@ -29,8 +36,8 @@ interface FormValues {
 export default function PublishingPage() {
   const router = useRouter()
   const [platform, setPlatform] = useState<Platform>(null)
-  const [cadence, setCadence] = useState<"3" | "5" | "10">("10")
-  const [publishMode, setPublishMode] = useState<"review" | "auto">("review")
+  const [cadence, setCadence] = useState<Cadence>("10")
+  const [publishMode, setPublishMode] = useState<PublishMode>("review")
 
   const { register } = useForm<FormValues>()
 
@@ -124,14 +131,16 @@ export default function PublishingPage() {
               <p className="text-xs text-muted-foreground/80 -mt-0.5">
                 Recommended for your domain: 5–10
               </p>
-              <Select value={cadence} onValueChange={(v) => v && setCadence(v as "3" | "5" | "10")}>
+              <Select value={cadence} onValueChange={(v) => v && setCadence(v as Cadence)}>
                 <SelectTrigger className="w-60">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="3">3 articles per week</SelectItem>
-                  <SelectItem value="5">5 articles per week</SelectItem>
-                  <SelectItem value="10">10 articles per week</SelectItem>
+                  {CADENCE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -166,7 +175,7 @@ export default function PublishingPage() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => router.push("/onboarding/profile")}
+              onClick={() => router.push(APP_ROUTES.onboardingProfile)}
             >
               <ArrowLeft className="size-4" />
               Back
@@ -175,7 +184,7 @@ export default function PublishingPage() {
               type="button"
               disabled={platform === null}
               className="group"
-              onClick={() => router.push("/onboarding/strategy")}
+              onClick={() => router.push(APP_ROUTES.onboardingStrategy)}
             >
               Build my strategy
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

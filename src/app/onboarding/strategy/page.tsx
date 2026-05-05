@@ -8,6 +8,14 @@ import { toast } from "sonner"
 import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
+import {
+  STRATEGY_COMPETITOR_STAGGER_MS,
+  STRATEGY_COUNTER_TICK_MS,
+  STRATEGY_DASHBOARD_REDIRECT_MS,
+  STRATEGY_ELAPSED_POLL_MS,
+  STRATEGY_STEP_DURATIONS_MS,
+} from "@/constants/onboarding-timing"
+import { APP_ROUTES } from "@/constants/routes"
 import { WEB_ENTITY } from "@/lib/hack2hire"
 import { ONBOARDING_STEPS, useOnboardingStepPolling } from "@/lib/api/client"
 
@@ -20,9 +28,6 @@ const STEPS = [
   "Scoring opportunities",
   "Building your content schedule",
 ]
-
-// Per-step duration. Total ~11s before redirect.
-const STEP_DURATIONS = [800, 2400, 1500, 1300, 1500, 1400, 1700]
 
 const COMPETITOR_DOMAINS = WEB_ENTITY.competitors.map((c) =>
   c.url.replace(/^www\./, "")
@@ -39,12 +44,15 @@ export default function StrategyPage() {
   useEffect(() => {
     if (activeIdx >= STEPS.length) {
       // Land on the dashboard once the strategy is "ready".
-      const timer = setTimeout(() => router.push("/dashboard"), 900)
+      const timer = setTimeout(
+        () => router.push(APP_ROUTES.dashboard),
+        STRATEGY_DASHBOARD_REDIRECT_MS,
+      )
       return () => clearTimeout(timer)
     }
     const timer = setTimeout(
       () => setActiveIdx((i) => i + 1),
-      STEP_DURATIONS[activeIdx]
+      STRATEGY_STEP_DURATIONS_MS[activeIdx]
     )
     return () => clearTimeout(timer)
   }, [activeIdx, router])
@@ -54,7 +62,7 @@ export default function StrategyPage() {
     if (activeIdx >= STEPS.length) return
     const interval = setInterval(() => {
       setKeywordsCollected((k) => k + Math.floor(20 + Math.random() * 80))
-    }, 240)
+    }, STRATEGY_COUNTER_TICK_MS)
     return () => clearInterval(interval)
   }, [activeIdx])
 
@@ -88,14 +96,14 @@ export default function StrategyPage() {
     const start = Date.now()
     const interval = setInterval(() => {
       setStep1Elapsed(Date.now() - start)
-    }, 200)
+    }, STRATEGY_ELAPSED_POLL_MS)
     return () => clearInterval(interval)
   }, [activeIdx])
 
   function isCompetitorDone(i: number): boolean {
     if (activeIdx > 1) return true
     if (activeIdx < 1) return false
-    return step1Elapsed > (i + 1) * 600
+    return step1Elapsed > (i + 1) * STRATEGY_COMPETITOR_STAGGER_MS
   }
 
   const progressPct = Math.min(
@@ -207,7 +215,7 @@ export default function StrategyPage() {
         {activeIdx < STEPS.length && (
           <div className="flex justify-center pt-2">
             <Link
-              href="/dashboard"
+              href={APP_ROUTES.dashboard}
               className="group inline-flex items-center gap-1 h-8 px-3 text-sm font-medium rounded-4xl border border-border bg-input/30 hover:bg-input/50 hover:text-foreground transition-colors"
             >
               Skip to dashboard

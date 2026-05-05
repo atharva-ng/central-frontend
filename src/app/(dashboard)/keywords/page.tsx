@@ -14,9 +14,16 @@ import {
 import { Topbar } from "@/components/app/Topbar"
 import { SectionLede } from "@/components/app/SectionLede"
 import { StatusBadge } from "@/components/app/StatusBadge"
-import { FunnelBadge, type Funnel } from "@/components/app/FunnelBadge"
+import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
 import { AddKeywordDialog, PlanCapDialog } from "@/components/app/AddKeywordDialog"
+import { toFunnel } from "@/constants/funnels"
+import {
+  KEYWORD_STATUS_LABEL,
+  KEYWORD_STATUS_TO_BADGE,
+  toKeywordStatus,
+} from "@/constants/keyword-status"
+import { STORAGE_KEYS } from "@/constants/storage-keys"
 import {
   ApiError,
   getKeywordData,
@@ -27,37 +34,6 @@ import {
 import type { Cluster, ClusterKeyword } from "@/lib/keywords"
 import { cn } from "@/lib/utils"
 
-const STATUS_LABEL: Record<ClusterKeyword["status"], string> = {
-  generated: "Generated",
-  scheduled: "Scheduled",
-  queued: "Queued",
-}
-
-const STATUS_TO_BADGE: Record<ClusterKeyword["status"], "review" | "scheduled" | "queued"> = {
-  generated: "review",
-  scheduled: "scheduled",
-  queued: "queued",
-}
-
-const WEB_ENTITY_ID_KEY = "blogengine.webEntityId"
-
-const VALID_FUNNELS: ReadonlySet<Funnel> = new Set(["TOFU", "MOFU", "BOFU"])
-const VALID_STATUSES: ReadonlySet<ClusterKeyword["status"]> = new Set([
-  "generated",
-  "scheduled",
-  "queued",
-])
-
-function toFunnel(value: string): Funnel {
-  return VALID_FUNNELS.has(value as Funnel) ? (value as Funnel) : "TOFU"
-}
-
-function toStatus(value: string): ClusterKeyword["status"] {
-  return VALID_STATUSES.has(value as ClusterKeyword["status"])
-    ? (value as ClusterKeyword["status"])
-    : "queued"
-}
-
 function toClusterKeyword(k: KeywordDTO): ClusterKeyword {
   return {
     keyword: k.keyword,
@@ -66,7 +42,7 @@ function toClusterKeyword(k: KeywordDTO): ClusterKeyword {
     difficulty: k.difficulty,
     cpc: k.cpc || undefined,
     score: Math.round(k.score),
-    status: toStatus(k.status),
+    status: toKeywordStatus(k.status),
     scheduledFor: k.scheduledFor ?? undefined,
     manuallyAdded: k.manuallyAdded || undefined,
   }
@@ -106,7 +82,7 @@ export default function KeywordsPage() {
 
     let webEntityId: string | null = null
     try {
-      webEntityId = window.localStorage.getItem(WEB_ENTITY_ID_KEY)
+      webEntityId = window.localStorage.getItem(STORAGE_KEYS.webEntityId)
     } catch {
       // localStorage unavailable
     }
@@ -392,8 +368,8 @@ function PillarCard({ k }: { k: ClusterKeyword }) {
         <FunnelBadge funnel={k.funnel} />
         <div className="ml-auto">
           <StatusBadge
-            status={STATUS_TO_BADGE[k.status]}
-            label={STATUS_LABEL[k.status]}
+            status={KEYWORD_STATUS_TO_BADGE[k.status]}
+            label={KEYWORD_STATUS_LABEL[k.status]}
           />
         </div>
       </div>
@@ -433,11 +409,11 @@ function SupportingRow({ k }: { k: ClusterKeyword }) {
       </div>
       <div className="shrink-0">
         <StatusBadge
-          status={STATUS_TO_BADGE[k.status]}
+          status={KEYWORD_STATUS_TO_BADGE[k.status]}
           label={
             k.status === "scheduled" && k.scheduledFor
               ? `Scheduled · ${k.scheduledFor}`
-              : STATUS_LABEL[k.status]
+              : KEYWORD_STATUS_LABEL[k.status]
           }
         />
       </div>

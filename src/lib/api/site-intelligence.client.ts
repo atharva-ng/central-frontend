@@ -3,7 +3,7 @@ import type { ClerkTokenGetter } from "./fetcher.client"
 import { ROUTES } from "./routes"
 import type { ApiResponse } from "./types"
 
-export type KeywordStatus = "queued" | "scheduled" | "generated"
+export type { KeywordStatus } from "@/constants/keyword-status"
 
 export type KeywordDTO = {
   keyword: string

@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { AnalysisStep } from "@/components/app/AnalysisStep"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
+import { APP_ROUTES } from "@/constants/routes"
+import { STORAGE_KEYS } from "@/constants/storage-keys"
 import {
   ApiError,
   ONBOARDING_STEPS,
@@ -24,8 +26,8 @@ const STEPS = [
   { num: "06", label: "Building your keyword strategy" },
 ] as const
 
-const PENDING_KEY = "blogengine.pendingOnboarding"
-const WEB_ENTITY_ID_KEY = "blogengine.webEntityId"
+const PENDING_KEY = STORAGE_KEYS.pendingOnboarding
+const WEB_ENTITY_ID_KEY = STORAGE_KEYS.webEntityId
 
 interface AnalyzingClientProps {
   initialStep: OnboardingStep
@@ -74,7 +76,7 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
     // Fresh submit landed here without server-side webEntity yet (USER_CREATED)
     // and without the in-flight pending payload — nothing to do, send back.
     if (initialStep === ONBOARDING_STEPS.USER_CREATED && !pending) {
-      router.replace("/onboarding")
+      router.replace(APP_ROUTES.onboarding)
       return
     }
 
@@ -100,7 +102,7 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
               ? `Couldn't start analysis (${err.status}).`
               : "Couldn't reach the server. Check your connection."
           toast.error(message)
-          router.push("/onboarding")
+          router.push(APP_ROUTES.onboarding)
           return
         }
       }

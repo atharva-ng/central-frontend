@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { FunnelBadge, type Funnel } from "@/components/app/FunnelBadge"
+import { FUNNEL_FILTER_OPTIONS, type FunnelFilter } from "@/constants/funnels"
 import { cn } from "@/lib/utils"
 
 interface SwapKeyword {
@@ -37,7 +38,7 @@ const POOL: SwapKeyword[] = [
   { keyword: "connect shopify to google sheets", cluster: "shopify-sheets", funnel: "BOFU", volume: 480, difficulty: 21 },
 ]
 
-const FILTERS: ("All" | Funnel)[] = ["All", "BOFU", "MOFU", "TOFU"]
+const FILTERS: readonly FunnelFilter[] = FUNNEL_FILTER_OPTIONS
 
 interface KeywordSwapDialogProps {
   open: boolean
@@ -53,7 +54,7 @@ export function KeywordSwapDialog({
   onSwap,
 }: KeywordSwapDialogProps) {
   const [search, setSearch] = useState("")
-  const [filter, setFilter] = useState<"All" | Funnel>("All")
+  const [filter, setFilter] = useState<FunnelFilter>("All")
   const [selected, setSelected] = useState<string | null>(null)
 
   const filtered = useMemo(() => {

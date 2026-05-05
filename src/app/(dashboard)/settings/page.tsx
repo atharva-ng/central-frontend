@@ -24,20 +24,16 @@ import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
 import { TagInput } from "@/components/app/TagInput"
 import { FramerIcon } from "@/components/app/BrandIcons"
+import {
+  CADENCE_OPTIONS,
+  type Cadence,
+  type PublishMode,
+  type PublishPlatform as Platform,
+} from "@/constants/publishing"
 import { WEB_ENTITY } from "@/lib/hack2hire"
 import { CLUSTERS } from "@/lib/keywords"
 import { COUNTRIES } from "@/lib/countries"
 import { cn } from "@/lib/utils"
-
-type Platform = "framer" | "manual"
-type PublishMode = "review" | "auto"
-type Cadence = "3" | "5" | "10"
-
-const CADENCE_OPTIONS: { value: Cadence; label: string }[] = [
-  { value: "3", label: "3 articles per week" },
-  { value: "5", label: "5 articles per week" },
-  { value: "10", label: "10 articles per week" },
-]
 
 export default function SettingsPage() {
   const ctx = WEB_ENTITY.context

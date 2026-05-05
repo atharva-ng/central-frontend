@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { MAX_IMAGE_BYTES } from "@/constants/articles"
 import { cn } from "@/lib/utils"
 
 interface ArticleToolbarProps {
@@ -220,10 +221,6 @@ function LinkEditPopover({ editor }: { editor: Editor }) {
     </Popover>
   )
 }
-
-// 8 MB cap — anything larger gets rejected with a toast. Data URLs scale with
-// the file, so this also keeps the editor doc size sane.
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 function ImageInsertPopover({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false)

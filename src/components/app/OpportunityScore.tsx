@@ -24,9 +24,9 @@ export function OpportunityScore({
   className?: string
 }) {
   const tone =
-    value >= 80
+    value >= 60
       ? "text-chart-3"
-      : value >= 65
+      : value >= 45
         ? "text-primary"
         : "text-muted-foreground"
 

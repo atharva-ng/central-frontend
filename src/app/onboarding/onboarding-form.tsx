@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { APP_ROUTES } from "@/constants/routes"
+import { STORAGE_KEYS } from "@/constants/storage-keys"
 import { COUNTRIES } from "@/lib/countries"
 
 export function OnboardingForm() {
@@ -43,14 +45,14 @@ export function OnboardingForm() {
     setSubmitting(true)
     try {
       sessionStorage.setItem(
-        "blogengine.pendingOnboarding",
+        STORAGE_KEYS.pendingOnboarding,
         JSON.stringify({ websiteUrl: `https://${trimmed}`, country }),
       )
     } catch {
       // sessionStorage may be unavailable; analyzing page will redirect back
       // gracefully if the key is missing.
     }
-    router.push("/onboarding/analyzing")
+    router.push(APP_ROUTES.onboardingAnalyzing)
   }
 
   return (

@@ -17,8 +17,11 @@ import {
   TabsContent,
 } from "@/components/ui/tabs"
 import { Topbar } from "@/components/app/Topbar"
-import { StatusBadge, type ArticleStatus } from "@/components/app/StatusBadge"
-import { FunnelBadge, type Funnel } from "@/components/app/FunnelBadge"
+import { StatusBadge } from "@/components/app/StatusBadge"
+import { FunnelBadge } from "@/components/app/FunnelBadge"
+import { ARTICLE_FILTERS, type ArticleStatus } from "@/constants/article-status"
+import type { Funnel } from "@/constants/funnels"
+import { APP_ROUTES } from "@/constants/routes"
 import { cn } from "@/lib/utils"
 
 interface ArticleRow {
@@ -102,13 +105,13 @@ const STATS = {
   scheduled: 7,
 }
 
-const FILTERS = [
-  { id: "all", label: "All", match: () => true },
-  { id: "review", label: "Ready for review", match: (a: ArticleRow) => a.status === "review" },
-  { id: "scheduled", label: "Scheduled", match: (a: ArticleRow) => a.status === "scheduled" },
-  { id: "published", label: "Published", match: (a: ArticleRow) => a.status === "published" },
-  { id: "generating", label: "Generating", match: (a: ArticleRow) => a.status === "generating" },
-] as const
+const FILTERS = ARTICLE_FILTERS.map((f) => ({
+  ...f,
+  match:
+    f.id === "all"
+      ? () => true
+      : (a: ArticleRow) => a.status === f.id,
+}))
 
 export default function ArticlesIndexPage() {
   const [tab, setTab] = useState<string>("all")
@@ -193,7 +196,7 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
           className="grid grid-cols-[1fr_180px_140px_70px_80px_140px_120px_90px] gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors group"
         >
           <Link
-            href={`/articles/${a.id}`}
+            href={APP_ROUTES.articleDetail(a.id)}
             className="text-sm font-medium truncate hover:text-primary transition-colors"
           >
             {a.title}
@@ -210,14 +213,14 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
           </span>
           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
-              href={`/articles/${a.id}`}
+              href={APP_ROUTES.articleDetail(a.id)}
               className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="View article"
             >
               <Eye className="size-3.5" />
             </Link>
             <Link
-              href={`/articles/${a.id}`}
+              href={APP_ROUTES.articleDetail(a.id)}
               className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="Edit article"
             >

@@ -27,6 +27,9 @@ import {
 import { TagInput } from "@/components/app/TagInput"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
+import { MAX_COMPETITORS } from "@/constants/keywords"
+import { APP_ROUTES } from "@/constants/routes"
+import { STORAGE_KEYS } from "@/constants/storage-keys"
 import { COUNTRIES } from "@/lib/countries"
 import { ApiError, patchWebEntity, processSiteIntelligence } from "@/lib/api/client"
 import type { WebEntity } from "@/lib/api/client"
@@ -35,8 +38,6 @@ interface Competitor {
   domain: string
   reason: string
 }
-
-const MAX_COMPETITORS = 3
 
 interface FormValues {
   businessName: string
@@ -48,7 +49,7 @@ interface FormValues {
   icpPain: string
 }
 
-const WEB_ENTITY_ID_KEY = "blogengine.webEntityId"
+const WEB_ENTITY_ID_KEY = STORAGE_KEYS.webEntityId
 
 interface ProfileFormProps {
   webEntity: WebEntity
@@ -161,7 +162,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
       }
     }
 
-    router.push("/onboarding/analyzing")
+    router.push(APP_ROUTES.onboardingAnalyzing)
   }
 
   async function handleRetry() {
@@ -170,7 +171,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
     try {
       await processSiteIntelligence(getToken, { webEntityId: webEntity.id })
       setProcessError(false)
-      router.push("/onboarding/analyzing")
+      router.push(APP_ROUTES.onboardingAnalyzing)
     } catch {
       // stays on the error panel; user can retry again
     } finally {

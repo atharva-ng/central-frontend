@@ -1,11 +1,12 @@
 // Article record — represents what comes back from the article store.
 // Used by the Tiptap editor screen at /articles/[id].
 
-import type { ArticleStatus } from "@/components/app/StatusBadge"
-import type { Funnel } from "@/components/app/FunnelBadge"
+import type { ArticleStatus } from "@/constants/article-status"
+import type { ArticleDestination, ArticleImagePosition } from "@/constants/articles"
+import type { Funnel } from "@/constants/funnels"
 
 export interface ArticleImage {
-  position: "thumbnail" | "mid-article"
+  position: ArticleImagePosition
   alt: string
   s3_key: string // empty string == not yet generated
 }
@@ -31,7 +32,7 @@ export interface ArticleRecord {
   auto_publish_at?: string
   published_at?: string
   live_url?: string
-  destination: "framer" | "manual"
+  destination: ArticleDestination
   meta_title: string
   meta_description: string
   url_slug: string

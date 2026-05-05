@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { ArrowLeft, Sparkles } from "lucide-react"
+import { APP_ROUTES } from "@/constants/routes"
 
 interface TopbarProps {
   title: string
@@ -25,7 +26,7 @@ export function Topbar({ title, action, back }: TopbarProps) {
       <div className="flex items-center gap-2 shrink-0">
         {action ?? (
           <Link
-            href="/dashboard"
+            href={APP_ROUTES.dashboard}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Sparkles className="size-3.5" />

@@ -10,11 +10,8 @@
 export type MongoObjectId = { $oid: string }
 export type MongoDate = { $date: string }
 
-export type Intent =
-  | "informational"
-  | "commercial"
-  | "navigational"
-  | "transactional"
+import type { Intent } from "@/constants/intent"
+export type { Intent }
 
 // ── web_entities ────────────────────────────────────────────────────────────
 

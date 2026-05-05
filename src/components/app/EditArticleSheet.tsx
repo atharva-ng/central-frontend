@@ -58,7 +58,7 @@ export function EditArticleSheet({
 }: EditArticleSheetProps) {
   const [title, setTitle] = useState("")
   const [showAlternatives, setShowAlternatives] = useState(false)
-  const [type, setType] = useState(ARTICLE_TYPES[0])
+  const [type, setType] = useState<string>(ARTICLE_TYPES[0])
   const [date, setDate] = useState<Date | undefined>()
   const [instructions, setInstructions] = useState("")
   const [swapOpen, setSwapOpen] = useState(false)

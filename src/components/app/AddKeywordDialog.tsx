@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
+import { MANUAL_KEYWORD_PLAN_LIMIT } from "@/constants/keywords"
 import {
   CLUSTERS,
   findDuplicate,
@@ -128,7 +129,7 @@ export function AddKeywordDialog({ open, onOpenChange, remaining, onAdded }: Add
           </DialogDescription>
           <p className="text-[11px] text-muted-foreground mt-1">
             <span className="font-mono tabular-nums">{remaining}</span> of{" "}
-            <span className="font-mono tabular-nums">10</span> manual keywords remaining this month
+            <span className="font-mono tabular-nums">{MANUAL_KEYWORD_PLAN_LIMIT}</span> manual keywords remaining this month
           </p>
         </DialogHeader>
 
@@ -289,7 +290,7 @@ export function PlanCapDialog({
           </div>
           <DialogTitle>Manual keyword limit reached</DialogTitle>
           <DialogDescription className="text-sm">
-            You&apos;ve used all 10 manual keywords on your current plan.
+            You&apos;ve used all {MANUAL_KEYWORD_PLAN_LIMIT} manual keywords on your current plan.
             Upgrade to Growth for unlimited manual keywords.
           </DialogDescription>
         </DialogHeader>

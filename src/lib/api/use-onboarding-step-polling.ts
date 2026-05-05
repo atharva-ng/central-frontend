@@ -3,11 +3,12 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
+import {
+  ONBOARDING_POLL_INITIAL_MS,
+  ONBOARDING_POLL_MAX_MS,
+} from "@/constants/polling"
 import { fetchOnboardingStepClient } from "./onboarding.client"
 import { STEP_TO_PAGE, type OnboardingStep } from "./onboarding-steps"
-
-const DEFAULT_INITIAL_INTERVAL_MS = 3000
-const DEFAULT_MAX_INTERVAL_MS = 30_000
 
 interface Options {
   expectedStep: OnboardingStep
@@ -18,8 +19,8 @@ interface Options {
 
 export function useOnboardingStepPolling({
   expectedStep,
-  initialIntervalMs = DEFAULT_INITIAL_INTERVAL_MS,
-  maxIntervalMs = DEFAULT_MAX_INTERVAL_MS,
+  initialIntervalMs = ONBOARDING_POLL_INITIAL_MS,
+  maxIntervalMs = ONBOARDING_POLL_MAX_MS,
   enabled = true,
 }: Options) {
   const router = useRouter()

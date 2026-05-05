@@ -1,11 +1,15 @@
 import { addDays, differenceInHours, format, formatDistanceToNowStrict, isBefore, parseISO, startOfDay } from "date-fns"
-import type { ArticleStatus } from "@/components/app/StatusBadge"
+import type { ArticleStatus } from "@/constants/article-status"
+import { ARTICLE_LOCK_DAYS_OFFSET } from "@/constants/articles"
+import type { Funnel } from "@/constants/funnels"
+
+export { ARTICLE_TYPES } from "@/constants/articles"
 
 export interface Article {
   id: string
   title: string
   keyword: string
-  funnel: "TOFU" | "MOFU" | "BOFU"
+  funnel: Funnel
   volume: number
   difficulty: number
   cpc: number
@@ -13,14 +17,6 @@ export interface Article {
   status: ArticleStatus
   scheduledFor: string // ISO yyyy-mm-dd
 }
-
-export const ARTICLE_TYPES = [
-  "How-To Guide",
-  "How-To + Comparison",
-  "Listicle / Roundup",
-  "Alternatives List",
-  "What-Is / Definition",
-]
 
 // Dummy data anchored to "today". The dev preview reads `new Date()` at render
 // so the relative status badges stay coherent across week navigation.
@@ -110,7 +106,7 @@ export function isMetadataLocked(a: Article): boolean {
 
 /** A scheduled article's auto-generation kicks off 24h before scheduledFor. */
 export function lockDate(a: Article): Date {
-  return addDays(parseISO(a.scheduledFor), -1)
+  return addDays(parseISO(a.scheduledFor), ARTICLE_LOCK_DAYS_OFFSET)
 }
 
 export function hoursUntilLock(a: Article): number {
@@ -140,7 +136,7 @@ export function isDraggable(a: Article): boolean {
  *  before generation kicks off, otherwise auto-pipeline fires immediately. */
 export function canDropOn(a: Article, targetDate: Date): boolean {
   if (!isDraggable(a)) return false
-  const lockAt = addDays(targetDate, -1)
+  const lockAt = addDays(targetDate, ARTICLE_LOCK_DAYS_OFFSET)
   return !isBefore(lockAt, new Date())
 }
 

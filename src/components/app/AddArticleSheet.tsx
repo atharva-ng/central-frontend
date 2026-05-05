@@ -38,7 +38,7 @@ interface AddArticleSheetProps {
 export function AddArticleSheet({ open, onOpenChange, onCreate, defaultDate }: AddArticleSheetProps) {
   const [keyword, setKeyword] = useState<PoolKeyword | null>(null)
   const [search, setSearch] = useState("")
-  const [type, setType] = useState(ARTICLE_TYPES[0])
+  const [type, setType] = useState<string>(ARTICLE_TYPES[0])
   const minDate = addDays(new Date(), 1) // 24h buffer
   const [date, setDate] = useState<Date | undefined>(
     defaultDate ? new Date(defaultDate + "T00:00:00") : addDays(new Date(), 2)
