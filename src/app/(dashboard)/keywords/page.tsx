@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Plus } from "lucide-react"
-import { useAuth } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -17,58 +16,20 @@ import { StatusBadge } from "@/components/app/StatusBadge"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
 import { AddKeywordDialog, PlanCapDialog } from "@/components/app/AddKeywordDialog"
-import { toFunnel } from "@/constants/funnels"
 import {
   KEYWORD_STATUS_LABEL,
   KEYWORD_STATUS_TO_BADGE,
-  toKeywordStatus,
 } from "@/constants/keyword-status"
-import { STORAGE_KEYS } from "@/constants/storage-keys"
 import {
-  ApiError,
-  getKeywordData,
-  type ClusterDTO,
-  type KeywordDTO,
-  type KeywordDataResponse,
+  toCluster,
+  useKeywordData,
+  type Cluster,
+  type ClusterKeyword,
 } from "@/lib/api/client"
-import type { Cluster, ClusterKeyword } from "@/lib/keywords"
 import { cn } from "@/lib/utils"
 
-function toClusterKeyword(k: KeywordDTO): ClusterKeyword {
-  return {
-    keyword: k.keyword,
-    funnel: toFunnel(k.funnel),
-    volume: k.volume,
-    difficulty: k.difficulty,
-    cpc: k.cpc || undefined,
-    score: Math.round(k.score),
-    status: toKeywordStatus(k.status),
-    scheduledFor: k.scheduledFor ?? undefined,
-    manuallyAdded: k.manuallyAdded || undefined,
-  }
-}
-
-function toCluster(c: ClusterDTO): Cluster {
-  return {
-    id: c.id,
-    name: c.name,
-    keywordCount: c.keywordCount,
-    pillarPublished: c.pillarPublished,
-    pillar: toClusterKeyword(c.pillar),
-    supporting: c.supporting.map(toClusterKeyword),
-  }
-}
-
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "missing-web-entity" }
-  | { kind: "not-ready" }
-  | { kind: "error"; message: string }
-  | { kind: "ready"; data: KeywordDataResponse }
-
 export default function KeywordsPage() {
-  const { getToken } = useAuth()
-  const [load, setLoad] = useState<LoadState>({ kind: "loading" })
+  const load = useKeywordData()
   // Track the active cluster by index — backend cluster IDs come from the LLM
   // (clusterKeywords.go) and are not guaranteed unique, so id-based lookup
   // collapses duplicates onto the first match.
@@ -76,55 +37,6 @@ export default function KeywordsPage() {
   const [usageDelta, setUsageDelta] = useState(0)
   const [addOpen, setAddOpen] = useState(false)
   const [capOpen, setCapOpen] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-
-    let webEntityId: string | null = null
-    try {
-      webEntityId = window.localStorage.getItem(STORAGE_KEYS.webEntityId)
-    } catch {
-      // localStorage unavailable
-    }
-
-    if (!webEntityId) {
-      // Syncing state from localStorage (an external store) on mount —
-      // the legitimate exception listed in React's set-state-in-effect guidance.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoad({ kind: "missing-web-entity" })
-      return
-    }
-
-    async function run() {
-      try {
-        const data = await getKeywordData(getToken, webEntityId!)
-        if (cancelled) return
-        setLoad({ kind: "ready", data })
-      } catch (err) {
-        if (cancelled) return
-        if (err instanceof ApiError && err.status === 409) {
-          setLoad({ kind: "not-ready" })
-          return
-        }
-        if (err instanceof ApiError && err.status === 404) {
-          setLoad({ kind: "missing-web-entity" })
-          return
-        }
-        setLoad({
-          kind: "error",
-          message:
-            err instanceof ApiError
-              ? `Couldn't load keywords (${err.status}).`
-              : "Couldn't reach the server.",
-        })
-      }
-    }
-
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [getToken])
 
   const clusters = useMemo<Cluster[]>(() => {
     if (load.kind !== "ready") return []
@@ -311,6 +223,7 @@ export default function KeywordsPage() {
       <AddKeywordDialog
         open={addOpen}
         onOpenChange={setAddOpen}
+        clusters={clusters}
         remaining={Math.max(0, limit - usage)}
         onAdded={() => setUsageDelta((d) => d + 1)}
       />

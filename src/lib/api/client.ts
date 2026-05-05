@@ -15,14 +15,22 @@ export type {
   ProcessSiteIntelligencePayload,
   ProcessSiteIntelligenceResponse,
 } from "./onboarding.client"
-export { getKeywordData } from "./site-intelligence.client"
+export {
+  getKeywordData,
+  toCluster,
+  toClusterKeyword,
+} from "./site-intelligence.client"
 export type {
+  Cluster,
   ClusterDTO,
+  ClusterKeyword,
   KeywordDTO,
   KeywordDataResponse,
   KeywordDataUsage,
   KeywordStatus,
 } from "./site-intelligence.client"
+export { useKeywordData } from "./use-keyword-data"
+export type { KeywordDataLoadState } from "./use-keyword-data"
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
 export { useOnboardingStepPolling } from "./use-onboarding-step-polling"
 export type {

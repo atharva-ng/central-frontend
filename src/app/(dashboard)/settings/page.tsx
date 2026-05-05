@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ChevronDown, ExternalLink, Clipboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
@@ -31,12 +32,22 @@ import {
   type PublishPlatform as Platform,
 } from "@/constants/publishing"
 import { WEB_ENTITY } from "@/lib/hack2hire"
-import { CLUSTERS } from "@/lib/keywords"
+import {
+  toCluster,
+  useKeywordData,
+  type Cluster,
+} from "@/lib/api/client"
 import { COUNTRIES } from "@/lib/countries"
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const ctx = WEB_ENTITY.context
+  const keywordData = useKeywordData()
+  const clusters = useMemo<Cluster[]>(() => {
+    if (keywordData.kind !== "ready") return []
+    return keywordData.data.clusters.map(toCluster)
+  }, [keywordData])
+  const totalKeywords = clusters.reduce((n, c) => n + 1 + c.supporting.length, 0)
 
   // — Business
   const [businessName, setBusinessName] = useState(ctx.business_name)
@@ -262,15 +273,41 @@ export default function SettingsPage() {
           {/* 05 — Keywords */}
           <section className="flex flex-col gap-5">
             <SectionLede number="05" label="Keywords" />
-            <p className="text-sm text-muted-foreground -mt-2">
-              {CLUSTERS.reduce((n, c) => n + 1 + c.supporting.length, 0)} keywords across{" "}
-              {CLUSTERS.length} clusters. Expand a cluster to see its keywords.
-            </p>
-            <div className="flex flex-col divide-y divide-border border-t border-b border-border">
-              {CLUSTERS.map((cluster) => (
-                <ClusterAccordion key={cluster.id} cluster={cluster} />
-              ))}
-            </div>
+            {keywordData.kind === "loading" && (
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            )}
+            {keywordData.kind === "missing-web-entity" && (
+              <p className="text-sm text-muted-foreground -mt-2">
+                No keyword strategy yet. Finish onboarding to generate clusters.
+              </p>
+            )}
+            {keywordData.kind === "not-ready" && (
+              <p className="text-sm text-muted-foreground -mt-2">
+                Building your keyword strategy — check back in a moment.
+              </p>
+            )}
+            {keywordData.kind === "error" && (
+              <p className="text-sm text-muted-foreground -mt-2">
+                {keywordData.message}
+              </p>
+            )}
+            {keywordData.kind === "ready" && (
+              <>
+                <p className="text-sm text-muted-foreground -mt-2">
+                  {totalKeywords} keywords across {clusters.length} cluster
+                  {clusters.length !== 1 ? "s" : ""}. Expand a cluster to see its keywords.
+                </p>
+                <div className="flex flex-col divide-y divide-border border-t border-b border-border">
+                  {clusters.map((cluster, i) => (
+                    <ClusterAccordion key={`${i}-${cluster.id}`} cluster={cluster} />
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
           {/* 06 — Voice */}
@@ -303,7 +340,7 @@ export default function SettingsPage() {
 function ClusterAccordion({
   cluster,
 }: {
-  cluster: import("@/lib/keywords").Cluster
+  cluster: Cluster
 }) {
   const [open, setOpen] = useState(false)
   const total = 1 + cluster.supporting.length

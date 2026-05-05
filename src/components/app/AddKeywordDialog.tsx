@@ -16,18 +16,64 @@ import {
 } from "@/components/ui/dialog"
 import { FunnelBadge } from "@/components/app/FunnelBadge"
 import { OpportunityScore } from "@/components/app/OpportunityScore"
+import { FUNNELS, type Funnel } from "@/constants/funnels"
+import { INTENT_SCORE_BOOST, INTENTS, type Intent } from "@/constants/intent"
 import { MANUAL_KEYWORD_PLAN_LIMIT } from "@/constants/keywords"
-import {
-  CLUSTERS,
-  findDuplicate,
-  lookupKeyword,
-  type KeywordLookup,
-} from "@/lib/keywords"
+import type { Cluster, ClusterKeyword } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
+
+interface KeywordLookup {
+  keyword: string
+  volume: number
+  difficulty: number
+  cpc: number
+  intent: Intent
+  suggestedFunnel: Funnel
+  cluster: string
+  score: number
+}
+
+// Stub keyword lookup. Returns null for very short / "obscure" queries so the
+// no-data UI path can be exercised. Replace with a real API call when the
+// backend keyword-research endpoint ships.
+function lookupKeyword(query: string, clusters: Cluster[]): KeywordLookup | null {
+  const q = query.trim().toLowerCase()
+  if (!q) return null
+  if (q.length < 4 || q.includes("xyz") || q.includes("obscure")) return null
+
+  const hash = Array.from(q).reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const volume = 200 + ((hash * 17) % 4000)
+  const difficulty = 12 + (hash % 30)
+  const cpc = +(1.5 + (hash % 80) / 10).toFixed(2)
+  const suggestedFunnel = FUNNELS[hash % FUNNELS.length]
+  const intent = INTENTS[hash % INTENTS.length]
+  const clusterNames = clusters.length > 0 ? clusters.map((c) => c.name) : ["New cluster"]
+  const cluster = clusterNames[hash % clusterNames.length]
+
+  const intentBoost = INTENT_SCORE_BOOST[intent]
+  const raw = 60 + Math.floor(volume / 120) - Math.floor(difficulty * 0.7) + intentBoost
+  const score = Math.min(95, Math.max(55, raw))
+
+  return { keyword: q, volume, difficulty, cpc, intent, suggestedFunnel, cluster, score }
+}
+
+function findDuplicate(
+  clusters: Cluster[],
+  query: string,
+): { cluster: string; entry: ClusterKeyword } | null {
+  const q = query.trim().toLowerCase()
+  for (const c of clusters) {
+    if (c.pillar.keyword === q) return { cluster: c.name, entry: c.pillar }
+    const hit = c.supporting.find((k) => k.keyword === q)
+    if (hit) return { cluster: c.name, entry: hit }
+  }
+  return null
+}
 
 interface AddKeywordDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  clusters: Cluster[]
   remaining: number
   onAdded: (lookup: KeywordLookup | { keyword: string; manual: true }) => void
 }
@@ -49,7 +95,7 @@ type Phase =
   | { kind: "no-data" }
   | { kind: "submitting"; data?: KeywordLookup }
 
-export function AddKeywordDialog({ open, onOpenChange, remaining, onAdded }: AddKeywordDialogProps) {
+export function AddKeywordDialog({ open, onOpenChange, clusters, remaining, onAdded }: AddKeywordDialogProps) {
   const [query, setQuery] = useState("")
   const [phase, setPhase] = useState<Phase>({ kind: "empty" })
 
@@ -71,7 +117,7 @@ export function AddKeywordDialog({ open, onOpenChange, remaining, onAdded }: Add
     }
 
     // Duplicate check is free (client-side) — surface it immediately
-    const dup = findDuplicate(trimmed)
+    const dup = findDuplicate(clusters, trimmed)
     if (dup) {
       setPhase({
         kind: "duplicate",
@@ -94,7 +140,7 @@ export function AddKeywordDialog({ open, onOpenChange, remaining, onAdded }: Add
     // Uses 1 manual keyword credit
     setPhase({ kind: "fetching" })
     setTimeout(() => {
-      const data = lookupKeyword(trimmed)
+      const data = lookupKeyword(trimmed, clusters)
       if (data) setPhase({ kind: "ready", data })
       else setPhase({ kind: "no-data" })
     }, 1100)
@@ -174,7 +220,7 @@ export function AddKeywordDialog({ open, onOpenChange, remaining, onAdded }: Add
                   Intent: {phase.data.intent} · Suggested funnel: {phase.data.suggestedFunnel}
                 </p>
                 {(() => {
-                  const exists = CLUSTERS.some((c) => c.name === phase.data.cluster)
+                  const exists = clusters.some((c) => c.name === phase.data.cluster)
                   return (
                     <p className="text-[11px] text-muted-foreground">
                       {exists ? (
