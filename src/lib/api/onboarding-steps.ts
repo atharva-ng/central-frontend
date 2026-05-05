@@ -1,6 +1,7 @@
 export const ONBOARDING_STEPS = {
   USER_CREATED: "USER_CREATED",
   WEBENTITY_CREATED: "WEBENTITY_CREATED",
+  CONTEXT_CREATED: "CONTEXT_CREATED",
   FINALISED: "FINALISED",
 } as const
 
@@ -57,10 +58,16 @@ export type Competitor = {
  * Maps an onboarding step to the page the user belongs on. Used by every
  * onboarding page guard to decide where to redirect when the user's actual
  * step doesn't match the page they're on.
+ *
+ * `WEBENTITY_CREATED` parks the user on `/onboarding/analyzing` because the
+ * backend still owes us context creation; the analyzing page polls
+ * `/v1/onboarding-steps` and forwards to `/onboarding/profile` once the step
+ * flips to `CONTEXT_CREATED`.
  */
 export const STEP_TO_PAGE: Record<OnboardingStep, string> = {
   USER_CREATED: "/onboarding",
-  WEBENTITY_CREATED: "/onboarding/profile",
+  WEBENTITY_CREATED: "/onboarding/analyzing",
+  CONTEXT_CREATED: "/onboarding/profile",
   FINALISED: "/onboarding/strategy",
 }
 

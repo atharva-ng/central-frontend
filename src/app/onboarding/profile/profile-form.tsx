@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
-import { ArrowLeft, ArrowRight, ExternalLink, Loader2, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, ExternalLink, Loader2, RefreshCw, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,7 @@ import { TagInput } from "@/components/app/TagInput"
 import { SectionLede } from "@/components/app/SectionLede"
 import { Masthead } from "@/components/app/Masthead"
 import { COUNTRIES } from "@/lib/countries"
-import { ApiError, patchWebEntity } from "@/lib/api/client"
+import { ApiError, patchWebEntity, processSiteIntelligence } from "@/lib/api/client"
 import type { WebEntity } from "@/lib/api/client"
 
 interface Competitor {
@@ -93,6 +93,8 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
   const [newDomain, setNewDomain] = useState("")
   const [newReason, setNewReason] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [processError, setProcessError] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   const businessName = watch("businessName")
   const productDescription = watch("productDescription")
@@ -125,16 +127,18 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
   async function handleConfirm() {
     if (submitting) return
     setSubmitting(true)
+
+    let finalised = false
     try {
       // Form-data PATCH ops aren't wired here yet — the form reads from a
       // static fixture. The atomic finalise call still flips the lock so
       // downstream pages see the right step.
-      await patchWebEntity(getToken, {
+      const patchResult = await patchWebEntity(getToken, {
         webEntityId: webEntity.id,
         ops: [],
         finalise: true,
       })
-      router.push("/onboarding/analyzing")
+      finalised = patchResult.finalised
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         toast.error("This profile is already locked. Refreshing your state.")
@@ -147,7 +151,76 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
           : "Couldn't reach the server. Check your connection."
       toast.error(message)
       setSubmitting(false)
+      return
     }
+
+    if (finalised) {
+      try {
+        await processSiteIntelligence(getToken, { webEntityId: webEntity.id })
+      } catch {
+        setSubmitting(false)
+        setProcessError(true)
+        return
+      }
+    }
+
+    router.push("/onboarding/analyzing")
+  }
+
+  async function handleRetry() {
+    if (retrying) return
+    setRetrying(true)
+    try {
+      await processSiteIntelligence(getToken, { webEntityId: webEntity.id })
+      setProcessError(false)
+      router.push("/onboarding/analyzing")
+    } catch {
+      // stays on the error panel; user can retry again
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  if (processError) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="border-b border-border h-14 flex items-center px-8 shrink-0">
+          <Masthead phase="Profile" step="01 / 02" className="w-full" />
+        </header>
+        <main className="flex-1 flex items-center justify-center px-6">
+          <div className="w-full max-w-md flex flex-col gap-8">
+            <div className="flex flex-col gap-3">
+              <h1 className="text-[28px] leading-[1.15] font-medium tracking-tight">
+                Something went wrong.
+              </h1>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Your profile was saved, but we couldn&apos;t kick off the analysis
+                pipeline. This is usually a temporary glitch — try again and it
+                should work.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button className="w-full h-11 group" onClick={handleRetry} disabled={retrying}>
+                {retrying ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Retrying…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="size-4 transition-transform group-hover:rotate-180 duration-300" />
+                    Try again
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Your profile changes are already saved — only the analysis trigger failed.
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (

@@ -12,9 +12,9 @@ export default async function ProfilePage() {
   if (!userId) redirect("/sign-in")
 
   const { step, webEntity } = await getOnboardingStep()
-  if (step !== ONBOARDING_STEPS.WEBENTITY_CREATED) redirect(STEP_TO_PAGE[step])
+  if (step !== ONBOARDING_STEPS.CONTEXT_CREATED) redirect(STEP_TO_PAGE[step])
 
-  // Step is WEBENTITY_CREATED so a webentity must exist; satisfy TS narrowing.
+  // Step is CONTEXT_CREATED so a webentity must exist; satisfy TS narrowing.
   if (!webEntity) redirect(STEP_TO_PAGE[ONBOARDING_STEPS.USER_CREATED])
 
   return <ProfileForm webEntity={webEntity} />

@@ -1,6 +1,12 @@
 import { apiFetchClient } from "./fetcher.client"
 import type { ClerkTokenGetter } from "./fetcher.client"
 import { ROUTES } from "./routes"
+import {
+  ONBOARDING_STEPS,
+  normalizeOnboardingStep,
+  type OnboardingStepsResponse,
+} from "./onboarding-steps"
+import type { ApiResponse } from "./types"
 
 export type BeginOnboardingPayload = {
   websiteUrl: string
@@ -68,6 +74,57 @@ export async function patchWebEntity(
     ROUTES.onboarding.webEntity,
     {
       method: "PATCH",
+      body: payload,
+    },
+  )
+}
+
+/**
+ * Client-side fetch of the user's current onboarding step. Mirrors the
+ * server-side `getOnboardingStep` (same normalization + unknown-step
+ * fallback) so polling from the analyzing page stays consistent with the
+ * server guards used by every onboarding route.
+ */
+export async function fetchOnboardingStepClient(
+  getToken: ClerkTokenGetter,
+): Promise<OnboardingStepsResponse> {
+  const response = await apiFetchClient<
+    ApiResponse<Omit<OnboardingStepsResponse, "step"> & { step: string }>
+  >(getToken, ROUTES.onboarding.steps)
+
+  const rawStep = response.data.step
+  const normalizedStep = normalizeOnboardingStep(rawStep)
+  if (!normalizedStep) {
+    console.warn(
+      `[onboarding] unknown step "${rawStep}" from ${ROUTES.onboarding.steps}; defaulting to ${ONBOARDING_STEPS.USER_CREATED}`,
+    )
+    return { ...response.data, step: ONBOARDING_STEPS.USER_CREATED }
+  }
+  return { ...response.data, step: normalizedStep }
+}
+
+export type ProcessSiteIntelligencePayload = {
+  webEntityId: string
+}
+
+export type ProcessSiteIntelligenceResponse = ApiResponse<{ status: string }>
+
+/**
+ * Kicks off the site-intelligence processing pipeline for the given web entity.
+ * Called after the profile is finalised. The pipeline runs asynchronously on
+ * the backend; this call only enqueues it.
+ *
+ * Returns HTTP 202 with `{ success: true, data: { status: "processing" } }`.
+ */
+export async function processSiteIntelligence(
+  getToken: ClerkTokenGetter,
+  payload: ProcessSiteIntelligencePayload,
+): Promise<ProcessSiteIntelligenceResponse> {
+  return apiFetchClient<ProcessSiteIntelligenceResponse>(
+    getToken,
+    ROUTES.siteIntelligence.process,
+    {
+      method: "POST",
       body: payload,
     },
   )

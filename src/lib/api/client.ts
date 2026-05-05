@@ -1,12 +1,19 @@
 export { ApiError, NetworkError } from "./core"
 export { apiFetchClient } from "./fetcher.client"
-export { beginOnboarding, patchWebEntity } from "./onboarding.client"
+export {
+  beginOnboarding,
+  fetchOnboardingStepClient,
+  patchWebEntity,
+  processSiteIntelligence,
+} from "./onboarding.client"
 export type {
   BeginOnboardingPayload,
   BeginOnboardingResponse,
   PatchOp,
   PatchWebEntityPayload,
   PatchWebEntityResponse,
+  ProcessSiteIntelligencePayload,
+  ProcessSiteIntelligenceResponse,
 } from "./onboarding.client"
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
 export type {

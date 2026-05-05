@@ -14,4 +14,7 @@ export const ROUTES = {
     steps: "/v1/onboarding-steps",
     webEntity: "/v1/web-entity",
   },
+  siteIntelligence: {
+    process: "/v1/site-intelligence/process",
+  },
 } as const
