@@ -1,13 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { CalendarDays, Search } from "lucide-react"
 import { addDays, format, isBefore } from "date-fns"
-import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui"
+import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, Skeleton } from "@/components/ui"
 import { SectionLede } from "@/components/app/SectionLede"
 import { ARTICLE_TYPES, formatShortDate, type Article } from "@/lib/articles"
-import { KEYWORD_POOL, type PoolKeyword } from "@/lib/keyword-pool"
+import { useKeywordData, toCluster } from "@/lib/api/client"
+import type { Funnel } from "@/constants"
 import { cn } from "@/lib/utils"
+
+interface PickerKeyword {
+  keyword: string
+  cluster: string
+  funnel: Funnel
+  volume: number
+  difficulty: number
+  cpc: number
+}
 
 interface AddArticleSheetProps {
   open: boolean
@@ -18,22 +28,38 @@ interface AddArticleSheetProps {
 }
 
 export function AddArticleSheet({ open, onOpenChange, onCreate, defaultDate }: AddArticleSheetProps) {
-  const [keyword, setKeyword] = useState<PoolKeyword | null>(null)
+  const keywordData = useKeywordData()
+  const [keyword, setKeyword] = useState<PickerKeyword | null>(null)
   const [search, setSearch] = useState("")
   const [type, setType] = useState<string>(ARTICLE_TYPES[0])
-  const minDate = addDays(new Date(), 1) // 24h buffer
+  const minDate = addDays(new Date(), 1)
   const [date, setDate] = useState<Date | undefined>(
     defaultDate ? new Date(defaultDate + "T00:00:00") : addDays(new Date(), 2)
   )
 
-  const filtered = KEYWORD_POOL.filter((k) =>
+  const allKeywords = useMemo<PickerKeyword[]>(() => {
+    if (keywordData.kind !== "ready") return []
+    return keywordData.data.clusters.flatMap((raw) => {
+      const cluster = toCluster(raw)
+      const all = [cluster.pillar, ...cluster.supporting]
+      return all.map((k) => ({
+        keyword: k.keyword,
+        cluster: cluster.name,
+        funnel: k.funnel,
+        volume: k.volume ?? 0,
+        difficulty: k.difficulty ?? 0,
+        cpc: k.cpc ?? 0,
+      }))
+    })
+  }, [keywordData])
+
+  const filtered = allKeywords.filter((k) =>
     k.keyword.toLowerCase().includes(search.toLowerCase()) ||
     k.cluster.toLowerCase().includes(search.toLowerCase())
   )
 
   function handleClose(next: boolean) {
     if (!next) {
-      // reset on close so next open is fresh
       setKeyword(null)
       setSearch("")
       setType(ARTICLE_TYPES[0])
@@ -82,43 +108,67 @@ export function AddArticleSheet({ open, onOpenChange, onCreate, defaultDate }: A
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search your keyword queue…"
                 className="pl-9"
+                disabled={keywordData.kind === "loading"}
               />
             </div>
-            <div className="flex flex-col max-h-72 overflow-y-auto -mx-1">
-              {filtered.length === 0 && (
-                <p className="text-xs text-muted-foreground py-4 px-1">No keywords match.</p>
-              )}
-              {filtered.map((k) => {
-                const selected = keyword?.keyword === k.keyword
-                return (
-                  <button
-                    key={k.keyword}
-                    type="button"
-                    onClick={() => setKeyword(k)}
-                    className={cn(
-                      "flex flex-col gap-1 text-left px-3 py-2.5 rounded-md border transition-colors",
-                      selected
-                        ? "border-foreground bg-card"
-                        : "border-transparent hover:bg-muted/50 border-b-border last:border-b-transparent rounded-none"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs">{k.keyword}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
-                        {k.funnel}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
-                      <span>{k.cluster}</span>
-                      <span className="text-muted-foreground/40">·</span>
-                      <span>{k.volume.toLocaleString()} vol</span>
-                      <span className="text-muted-foreground/40">·</span>
-                      <span>KD {k.difficulty}</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+
+            {keywordData.kind === "loading" && (
+              <div className="flex flex-col gap-2 pt-1">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-4/5" />
+              </div>
+            )}
+
+            {(keywordData.kind === "missing-web-entity" || keywordData.kind === "not-ready") && (
+              <p className="text-xs text-muted-foreground py-4">
+                {keywordData.kind === "not-ready"
+                  ? "Your keyword strategy is still being built — check back in a moment."
+                  : "No keyword strategy yet. Finish onboarding to generate keywords."}
+              </p>
+            )}
+
+            {keywordData.kind === "error" && (
+              <p className="text-xs text-muted-foreground py-4">{keywordData.message}</p>
+            )}
+
+            {keywordData.kind === "ready" && (
+              <div className="flex flex-col max-h-72 overflow-y-auto -mx-1">
+                {filtered.length === 0 && (
+                  <p className="text-xs text-muted-foreground py-4 px-1">No keywords match.</p>
+                )}
+                {filtered.map((k) => {
+                  const selected = keyword?.keyword === k.keyword
+                  return (
+                    <button
+                      key={k.keyword}
+                      type="button"
+                      onClick={() => setKeyword(k)}
+                      className={cn(
+                        "flex flex-col gap-1 text-left px-3 py-2.5 rounded-md border transition-colors",
+                        selected
+                          ? "border-foreground bg-card"
+                          : "border-transparent hover:bg-muted/50 border-b-border last:border-b-transparent rounded-none"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs">{k.keyword}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
+                          {k.funnel}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
+                        <span>{k.cluster}</span>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span>{k.volume.toLocaleString()} vol</span>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span>KD {k.difficulty}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </section>
 
           {/* Type */}
