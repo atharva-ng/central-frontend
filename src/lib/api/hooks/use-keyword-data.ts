@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@clerk/nextjs"
 import { STORAGE_KEYS } from "@/constants/storage-keys"
-import { ApiError } from "./core"
-import { getKeywordData, type KeywordDataResponse } from "./site-intelligence.client"
+import { ApiError } from "../core"
+import { siteIntelligenceRepository, type KeywordDataResponse } from "../repositories/site-intelligence.client"
 
 export type KeywordDataLoadState =
   | { kind: "loading" }
@@ -37,7 +37,7 @@ export function useKeywordData(): KeywordDataLoadState {
 
     async function run() {
       try {
-        const data = await getKeywordData(getToken, webEntityId!)
+        const data = await siteIntelligenceRepository.getKeywordData(getToken, webEntityId!)
         if (cancelled) return
         setState({ kind: "ready", data })
       } catch (err) {

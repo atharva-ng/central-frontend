@@ -2,7 +2,14 @@ import "server-only"
 
 export { ApiError, NetworkError } from "./core"
 export { apiFetch } from "./fetcher.server"
-export { getOnboardingStep } from "./onboarding-steps.server"
+export { ROUTES } from "./routes"
+export type { ApiResponse, User } from "./types"
+
+// Repositories — server-only data access.
+export { onboardingServerRepository } from "./repositories/onboarding.server"
+export { usersRepository } from "./repositories/users.server"
+
+// Step taxonomy + types — shared between client and server.
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
 export type {
   BusinessContext,
@@ -12,6 +19,3 @@ export type {
   OnboardingStepsResponse,
   WebEntity,
 } from "./onboarding-steps"
-export { ROUTES } from "./routes"
-export { getCurrentUser } from "./users.server"
-export type { User } from "./types"

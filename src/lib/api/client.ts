@@ -1,25 +1,20 @@
 export { ApiError, NetworkError } from "./core"
 export { apiFetchClient } from "./fetcher.client"
-export {
-  beginOnboarding,
-  fetchOnboardingStepClient,
-  patchWebEntity,
-  processSiteIntelligence,
-} from "./onboarding.client"
+export type { ClerkTokenGetter } from "./fetcher.client"
+export { ROUTES } from "./routes"
+export type { ApiResponse, User } from "./types"
+
+// Repositories — every backend interaction goes through one of these.
+export { authRepository } from "./repositories/auth.client"
+export { onboardingRepository } from "./repositories/onboarding.client"
 export type {
   BeginOnboardingPayload,
   BeginOnboardingResponse,
   PatchOp,
   PatchWebEntityPayload,
   PatchWebEntityResponse,
-  ProcessSiteIntelligencePayload,
-  ProcessSiteIntelligenceResponse,
-} from "./onboarding.client"
-export {
-  getKeywordData,
-  toCluster,
-  toClusterKeyword,
-} from "./site-intelligence.client"
+} from "./repositories/onboarding.client"
+export { siteIntelligenceRepository, toCluster, toClusterKeyword } from "./repositories/site-intelligence.client"
 export type {
   Cluster,
   ClusterDTO,
@@ -28,11 +23,12 @@ export type {
   KeywordDataResponse,
   KeywordDataUsage,
   KeywordStatus,
-} from "./site-intelligence.client"
-export { useKeywordData } from "./use-keyword-data"
-export type { KeywordDataLoadState } from "./use-keyword-data"
+  ProcessSiteIntelligencePayload,
+  ProcessSiteIntelligenceResponse,
+} from "./repositories/site-intelligence.client"
+
+// Step taxonomy + types — shared between client and server.
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
-export { useOnboardingStepPolling } from "./use-onboarding-step-polling"
 export type {
   BusinessContext,
   Competitor,
@@ -41,5 +37,8 @@ export type {
   OnboardingStepsResponse,
   WebEntity,
 } from "./onboarding-steps"
-export { ROUTES } from "./routes"
-export type { User } from "./types"
+
+// Hooks — bind a repository to a React component lifecycle.
+export { useKeywordData } from "./hooks/use-keyword-data"
+export type { KeywordDataLoadState } from "./hooks/use-keyword-data"
+export { useOnboardingStepPolling } from "./hooks/use-onboarding-step-polling"

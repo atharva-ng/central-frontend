@@ -9,7 +9,7 @@ import { APP_ROUTES, STORAGE_KEYS } from "@/constants"
 import {
   ApiError,
   ONBOARDING_STEPS,
-  beginOnboarding,
+  onboardingRepository,
   useOnboardingStepPolling,
 } from "@/lib/api/client"
 import type { OnboardingStep } from "@/lib/api/client"
@@ -45,8 +45,8 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
   const [website, setWebsite] = useState<string>(() =>
     initialWebsiteUrl ? deriveHostname(initialWebsiteUrl) : "",
   )
-  // Gate polling until any one-time init (beginOnboarding) has committed —
-  // otherwise the first poll can race the POST and yank the user back.
+  // Gate polling until any one-time init (onboardingRepository.begin) has
+  // committed — otherwise the first poll can race the POST and yank the user back.
   const [pollingEnabled, setPollingEnabled] = useState(
     initialStep === ONBOARDING_STEPS.WEBENTITY_CREATED,
   )
@@ -80,11 +80,11 @@ export function AnalyzingClient({ initialStep, initialWebsiteUrl }: AnalyzingCli
     async function run() {
       // Only the very first visit (USER_CREATED + pending payload) should
       // POST /v1/onboard. On reload the step is already WEBENTITY_CREATED and
-      // we go straight to polling — beginOnboarding is idempotent on the
-      // backend but skipping it avoids an unnecessary round-trip.
+      // we go straight to polling — onboardingRepository.begin is idempotent
+      // on the backend but skipping it avoids an unnecessary round-trip.
       if (initialStep === ONBOARDING_STEPS.USER_CREATED && pending) {
         try {
-          const { webEntityId } = await beginOnboarding(getToken, pending)
+          const { webEntityId } = await onboardingRepository.begin(getToken, pending)
           if (cancelled) return
           try {
             sessionStorage.removeItem(PENDING_KEY)

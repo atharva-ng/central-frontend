@@ -4,8 +4,8 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
 import { ONBOARDING_POLL_INITIAL_MS, ONBOARDING_POLL_MAX_MS } from "@/constants"
-import { fetchOnboardingStepClient } from "./onboarding.client"
-import { STEP_TO_PAGE, type OnboardingStep } from "./onboarding-steps"
+import { onboardingRepository } from "../repositories/onboarding.client"
+import { STEP_TO_PAGE, type OnboardingStep } from "../onboarding-steps"
 
 interface Options {
   expectedStep: OnboardingStep
@@ -33,7 +33,7 @@ export function useOnboardingStepPolling({
     async function poll() {
       if (cancelled) return
       try {
-        const { step } = await fetchOnboardingStepClient(getToken)
+        const { step } = await onboardingRepository.getStep(getToken)
         if (cancelled) return
         if (step !== expectedStep) {
           router.push(STEP_TO_PAGE[step])

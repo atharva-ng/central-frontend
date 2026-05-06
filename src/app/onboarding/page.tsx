@@ -4,7 +4,7 @@ import { Masthead } from "@/components/app/Masthead"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
-  getOnboardingStep,
+  onboardingServerRepository,
 } from "@/lib/api/server"
 import { OnboardingForm } from "./onboarding-form"
 
@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const { step } = await getOnboardingStep()
+  const { step } = await onboardingServerRepository.getStep()
   if (step !== ONBOARDING_STEPS.USER_CREATED) redirect(STEP_TO_PAGE[step])
 
   return (

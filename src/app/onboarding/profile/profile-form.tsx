@@ -10,7 +10,7 @@ import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 import { Masthead, SectionLede, TagInput } from "@/components/app"
 import { APP_ROUTES, MAX_COMPETITORS, STORAGE_KEYS } from "@/constants"
 import { COUNTRIES } from "@/lib/countries"
-import { ApiError, patchWebEntity, processSiteIntelligence } from "@/lib/api/client"
+import { ApiError, onboardingRepository, siteIntelligenceRepository } from "@/lib/api/client"
 import type { WebEntity } from "@/lib/api/client"
 
 interface Competitor {
@@ -110,7 +110,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
 
     let finalised = false
     try {
-      const patchResult = await patchWebEntity(getToken, {
+      const patchResult = await onboardingRepository.patchWebEntity(getToken, {
         webEntityId: webEntity.id,
         ops: [],
         finalise: true,
@@ -133,7 +133,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
 
     if (finalised) {
       try {
-        await processSiteIntelligence(getToken, { webEntityId: webEntity.id })
+        await siteIntelligenceRepository.process(getToken, { webEntityId: webEntity.id })
       } catch {
         setSubmitting(false)
         setProcessError(true)
@@ -148,7 +148,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
     if (retrying) return
     setRetrying(true)
     try {
-      await processSiteIntelligence(getToken, { webEntityId: webEntity.id })
+      await siteIntelligenceRepository.process(getToken, { webEntityId: webEntity.id })
       setProcessError(false)
       router.push(APP_ROUTES.onboardingAnalyzing)
     } catch {

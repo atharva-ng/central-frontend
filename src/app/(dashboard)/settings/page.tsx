@@ -1,8 +1,8 @@
-import { getOnboardingStep } from "@/lib/api/server"
+import { onboardingServerRepository } from "@/lib/api/server"
 import { SettingsClient } from "./settings-client"
 
 export default async function SettingsPage() {
-  const { webEntity } = await getOnboardingStep()
+  const { webEntity } = await onboardingServerRepository.getStep()
 
   // A fully onboarded user always has a webEntity; the narrowing below satisfies
   // TypeScript. If somehow null (e.g. a race before backend propagates), the

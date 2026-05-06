@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
-  getOnboardingStep,
+  onboardingServerRepository,
 } from "@/lib/api/server"
 
 export default async function StrategyLayout({
@@ -14,7 +14,7 @@ export default async function StrategyLayout({
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const { step } = await getOnboardingStep()
+  const { step } = await onboardingServerRepository.getStep()
   if (step !== ONBOARDING_STEPS.FINALISED) redirect(STEP_TO_PAGE[step])
 
   return <>{children}</>

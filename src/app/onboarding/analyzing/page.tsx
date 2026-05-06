@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
-  getOnboardingStep,
+  onboardingServerRepository,
 } from "@/lib/api/server"
 import { AnalyzingClient } from "./analyzing-client"
 
@@ -11,7 +11,7 @@ export default async function AnalyzingPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const { step, webEntity } = await getOnboardingStep()
+  const { step, webEntity } = await onboardingServerRepository.getStep()
 
   // Past the analyzing screen — never re-render it. We only forward; we do
   // not redirect USER_CREATED back to /onboarding here because a fresh form

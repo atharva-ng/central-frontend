@@ -1,8 +1,7 @@
 import { toFunnel, toKeywordStatus, type Funnel, type KeywordStatus } from "@/constants"
-import { apiFetchClient } from "./fetcher.client"
-import type { ClerkTokenGetter } from "./fetcher.client"
-import { ROUTES } from "./routes"
-import type { ApiResponse } from "./types"
+import { apiFetchClient, type ClerkTokenGetter } from "../fetcher.client"
+import { ROUTES } from "../routes"
+import type { ApiResponse } from "../types"
 
 export type { KeywordStatus } from "@/constants/keyword-status"
 
@@ -87,11 +86,44 @@ export function toCluster(c: ClusterDTO): Cluster {
   }
 }
 
-export async function getKeywordData(
-  getToken: ClerkTokenGetter,
-  webEntityId: string,
-): Promise<KeywordDataResponse> {
-  const path = `${ROUTES.siteIntelligence.keywordData}?webEntityId=${encodeURIComponent(webEntityId)}`
-  const res = await apiFetchClient<ApiResponse<KeywordDataResponse>>(getToken, path)
-  return res.data
+export type ProcessSiteIntelligencePayload = {
+  webEntityId: string
+}
+
+export type ProcessSiteIntelligenceResponse = ApiResponse<{ status: string }>
+
+/**
+ * Client-side site-intelligence API.
+ */
+export const siteIntelligenceRepository = {
+  /**
+   * Kicks off the site-intelligence processing pipeline for the given web
+   * entity. Called after the profile is finalised. The pipeline runs
+   * asynchronously on the backend; this call only enqueues it.
+   *
+   * Returns HTTP 202 with `{ success: true, data: { status: "processing" } }`.
+   */
+  async process(
+    getToken: ClerkTokenGetter,
+    payload: ProcessSiteIntelligencePayload,
+  ): Promise<ProcessSiteIntelligenceResponse> {
+    return apiFetchClient<ProcessSiteIntelligenceResponse>(
+      getToken,
+      ROUTES.siteIntelligence.process,
+      { method: "POST", body: payload },
+    )
+  },
+
+  /**
+   * Fetches the materialised keyword/cluster data for a web entity. Returns
+   * `KeywordDataResponse` in DTO shape — convert to UI form via `toCluster`.
+   */
+  async getKeywordData(
+    getToken: ClerkTokenGetter,
+    webEntityId: string,
+  ): Promise<KeywordDataResponse> {
+    const path = `${ROUTES.siteIntelligence.keywordData}?webEntityId=${encodeURIComponent(webEntityId)}`
+    const res = await apiFetchClient<ApiResponse<KeywordDataResponse>>(getToken, path)
+    return res.data
+  },
 }

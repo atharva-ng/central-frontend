@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs"
 import { useEffect, useRef } from "react"
-import { clearAuthToken, syncAuthToken } from "@/lib/auth/sync-token"
+import { authRepository } from "@/lib/api/client"
 
 export function AuthTokenSync() {
   const { isLoaded, isSignedIn, getToken } = useAuth()
@@ -14,7 +14,7 @@ export function AuthTokenSync() {
     if (!isSignedIn) {
       if (lastSynced.current !== null) {
         lastSynced.current = null
-        void clearAuthToken()
+        void authRepository.clearToken()
       }
       return
     }
@@ -24,7 +24,7 @@ export function AuthTokenSync() {
       const token = await getToken()
       if (cancelled || !token || token === lastSynced.current) return
       try {
-        await syncAuthToken(token)
+        await authRepository.syncToken(token)
         lastSynced.current = token
       } catch {
         lastSynced.current = null
