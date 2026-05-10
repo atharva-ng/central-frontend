@@ -22,9 +22,17 @@ export type WebEntity = {
   countryCode: string
   businessContext?: BusinessContext
   competitors?: Competitor[]
+  publishing?: PublishingConfig
   finalised: boolean
   createdAt: string
   updatedAt: string
+}
+
+export type PublishingConfig = {
+  platform?: string
+  apiKey?: string
+  articlesPerWeek?: number
+  publishMode?: string
 }
 
 export type BusinessContext = {

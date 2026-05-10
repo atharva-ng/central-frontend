@@ -4,14 +4,16 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
-import { ArrowLeft, ArrowRight, ExternalLink, Loader2, RefreshCw, X } from "lucide-react"
-import { toast } from "sonner"
+import { ArrowLeft, ArrowRight, ExternalLink, X } from "lucide-react"
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@/components/ui"
 import { Masthead, SectionLede, TagInput } from "@/components/app"
 import { APP_ROUTES, MAX_COMPETITORS, STORAGE_KEYS } from "@/constants"
 import { COUNTRIES } from "@/lib/countries"
-import { ApiError, onboardingRepository, siteIntelligenceRepository } from "@/lib/api/client"
-import type { WebEntity } from "@/lib/api/client"
+import { onboardingRepository, type WebEntity } from "@/lib/api/client"
+import {
+  readPublishingOptionsCache,
+  writePublishingOptionsCache,
+} from "@/lib/publishing-options-cache"
 
 interface Competitor {
   domain: string
@@ -60,6 +62,27 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
     }
   }, [webEntity.id])
 
+  // Prefetch the publishing-options catalog so the next screen
+  // (/onboarding/publishing) renders without waiting on the network. Skip
+  // when the cache is already warm — typically a return visit during the
+  // same session. Failures are silent: publishing-form falls back to its
+  // own fetch when the cache is empty.
+  useEffect(() => {
+    if (readPublishingOptionsCache()) return
+    let cancelled = false
+    onboardingRepository
+      .getPublishingOptions(getToken)
+      .then((opts) => {
+        if (!cancelled) writePublishingOptionsCache(opts)
+      })
+      .catch(() => {
+        // Silent — cache miss on next page just triggers a fetch there.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [getToken])
+
   const [tags, setTags] = useState<string[]>(
     ctx?.integrations && ctx.integrations.length > 0 ? ctx.integrations : [],
   )
@@ -72,14 +95,11 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [newDomain, setNewDomain] = useState("")
   const [newReason, setNewReason] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [processError, setProcessError] = useState(false)
-  const [retrying, setRetrying] = useState(false)
 
   const businessName = watch("businessName")
   const productDescription = watch("productDescription")
   const canContinue =
-    businessName.trim().length > 0 && productDescription.trim().length > 0 && !submitting
+    businessName.trim().length > 0 && productDescription.trim().length > 0
   const competitorsFull = competitors.length >= MAX_COMPETITORS
 
   function removeCompetitor(domain: string) {
@@ -104,100 +124,8 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
     setDialogOpen(false)
   }
 
-  async function handleConfirm() {
-    if (submitting) return
-    setSubmitting(true)
-
-    let finalised = false
-    try {
-      const patchResult = await onboardingRepository.patchWebEntity(getToken, {
-        webEntityId: webEntity.id,
-        ops: [],
-        finalise: true,
-      })
-      finalised = patchResult.finalised
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        toast.error("This profile is already locked. Refreshing your state.")
-        router.refresh()
-        return
-      }
-      const message =
-        err instanceof ApiError
-          ? `Couldn't save (${err.status}).`
-          : "Couldn't reach the server. Check your connection."
-      toast.error(message)
-      setSubmitting(false)
-      return
-    }
-
-    if (finalised) {
-      try {
-        await siteIntelligenceRepository.process(getToken, { webEntityId: webEntity.id })
-      } catch {
-        setSubmitting(false)
-        setProcessError(true)
-        return
-      }
-    }
-
-    router.push(APP_ROUTES.onboardingAnalyzing)
-  }
-
-  async function handleRetry() {
-    if (retrying) return
-    setRetrying(true)
-    try {
-      await siteIntelligenceRepository.process(getToken, { webEntityId: webEntity.id })
-      setProcessError(false)
-      router.push(APP_ROUTES.onboardingAnalyzing)
-    } catch {
-      // stays on the error panel; user can retry again
-    } finally {
-      setRetrying(false)
-    }
-  }
-
-  if (processError) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="border-b border-border h-14 flex items-center px-8 shrink-0">
-          <Masthead phase="Profile" step="01 / 02" className="w-full" />
-        </header>
-        <main className="flex-1 flex items-center justify-center px-6">
-          <div className="w-full max-w-md flex flex-col gap-8">
-            <div className="flex flex-col gap-3">
-              <h1 className="text-[28px] leading-[1.15] font-medium tracking-tight">
-                Something went wrong.
-              </h1>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Your profile was saved, but we couldn&apos;t kick off the analysis
-                pipeline. This is usually a temporary glitch — try again and it
-                should work.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Button className="w-full h-11 group" onClick={handleRetry} disabled={retrying}>
-                {retrying ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Retrying…
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="size-4 transition-transform group-hover:rotate-180 duration-300" />
-                    Try again
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Your profile changes are already saved — only the analysis trigger failed.
-              </p>
-            </div>
-          </div>
-        </main>
-      </div>
-    )
+  function handleConfirm() {
+    router.push(APP_ROUTES.onboardingPublishing)
   }
 
   return (
@@ -330,7 +258,7 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
             </section>
 
             <div className="flex items-center justify-between border-t border-border pt-6">
-              <Button type="button" variant="ghost" disabled={submitting}>
+              <Button type="button" variant="ghost">
                 <ArrowLeft className="size-4" />
                 Back
               </Button>
@@ -340,17 +268,8 @@ export function ProfileForm({ webEntity }: ProfileFormProps) {
                 onClick={handleConfirm}
                 className="group"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Saving
-                  </>
-                ) : (
-                  <>
-                    Looks right
-                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
+                Looks right
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </Button>
             </div>
           </form>

@@ -8,6 +8,7 @@ import {
   normalizeOnboardingStep,
   type OnboardingStepsResponse,
 } from "../onboarding-steps"
+import type { PublishingOptions } from "../publishing"
 import type { ApiResponse } from "../types"
 
 type RawStepsResponse = ApiResponse<
@@ -64,5 +65,19 @@ export const onboardingServerRepository = {
     }
 
     return { ...response.data, step: normalizedStep }
+  },
+
+  /**
+   * Server-side fetch of the static publishing catalog. Use in the publishing
+   * page Server Component so the form renders with options already in hand.
+   * Retries once on 5xx/network — the endpoint is a read.
+   */
+  async getPublishingOptions(): Promise<PublishingOptions> {
+    const response = await apiFetch<ApiResponse<PublishingOptions>>(
+      ROUTES.onboarding.publishingOptions,
+      {},
+      { retries: 1, backoffMs: 200 },
+    )
+    return response.data
   },
 }

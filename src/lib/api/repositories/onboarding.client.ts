@@ -5,6 +5,7 @@ import {
   normalizeOnboardingStep,
   type OnboardingStepsResponse,
 } from "../onboarding-steps"
+import type { PublishingOptions } from "../publishing"
 import type { ApiResponse } from "../types"
 
 export type BeginOnboardingPayload = {
@@ -105,5 +106,19 @@ export const onboardingRepository = {
       return { ...response.data, step: ONBOARDING_STEPS.USER_CREATED }
     }
     return { ...response.data, step: normalizedStep }
+  },
+
+  /**
+   * Fetches the static publishing catalog (destinations, modes, cadences)
+   * the publishing screen renders. Backed by `constants/publishing.go`.
+   */
+  async getPublishingOptions(
+    getToken: ClerkTokenGetter,
+  ): Promise<PublishingOptions> {
+    const res = await apiFetchClient<ApiResponse<PublishingOptions>>(
+      getToken,
+      ROUTES.onboarding.publishingOptions,
+    )
+    return res.data
   },
 }

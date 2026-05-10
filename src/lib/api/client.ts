@@ -38,6 +38,18 @@ export type {
   WebEntity,
 } from "./onboarding-steps"
 
+// Publishing catalog — backed by `/v1/publishing-options`.
+export type {
+  ApiKeyField,
+  Cadence,
+  CadenceOption,
+  PlatformOption,
+  PublishingOptions,
+  PublishMode,
+  PublishModeOption,
+  PublishPlatform,
+} from "./publishing"
+
 // Hooks — bind a repository to a React component lifecycle.
 export { useKeywordData } from "./hooks/use-keyword-data"
 export type { KeywordDataLoadState } from "./hooks/use-keyword-data"

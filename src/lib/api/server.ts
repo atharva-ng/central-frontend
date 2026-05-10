@@ -19,3 +19,15 @@ export type {
   OnboardingStepsResponse,
   WebEntity,
 } from "./onboarding-steps"
+
+// Publishing catalog — backed by `/v1/publishing-options`.
+export type {
+  ApiKeyField,
+  Cadence,
+  CadenceOption,
+  PlatformOption,
+  PublishingOptions,
+  PublishMode,
+  PublishModeOption,
+  PublishPlatform,
+} from "./publishing"

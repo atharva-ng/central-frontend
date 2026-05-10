@@ -4,11 +4,14 @@ import { useMemo, useState } from "react"
 import { ChevronDown, ExternalLink, Clipboard } from "lucide-react"
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
 import { FunnelBadge, FramerIcon, OpportunityScore, SectionLede, TagInput, Topbar } from "@/components/app"
-import { CADENCE_OPTIONS, type Cadence, type PublishMode, type PublishPlatform as Platform } from "@/constants"
 import {
   toCluster,
   useKeywordData,
+  type Cadence,
   type Cluster,
+  type PublishingOptions,
+  type PublishMode,
+  type PublishPlatform as Platform,
 } from "@/lib/api/client"
 import type { WebEntity } from "@/lib/api/server"
 import { COUNTRIES } from "@/lib/countries"
@@ -16,9 +19,10 @@ import { cn } from "@/lib/utils"
 
 interface SettingsClientProps {
   webEntity: WebEntity
+  options: PublishingOptions
 }
 
-export function SettingsClient({ webEntity }: SettingsClientProps) {
+export function SettingsClient({ webEntity, options }: SettingsClientProps) {
   const ctx = webEntity.businessContext
   const keywordData = useKeywordData()
   const clusters = useMemo<Cluster[]>(() => {
@@ -48,7 +52,7 @@ export function SettingsClient({ webEntity }: SettingsClientProps) {
   const [platform, setPlatform] = useState<Platform>("manual")
   const [framerUrl, setFramerUrl] = useState("")
   const [framerToken, setFramerToken] = useState("")
-  const [cadence, setCadence] = useState<Cadence>("10")
+  const [cadence, setCadence] = useState<Cadence>(10)
   const [publishMode, setPublishMode] = useState<PublishMode>("review")
 
   // — Voice
@@ -181,13 +185,16 @@ export function SettingsClient({ webEntity }: SettingsClientProps) {
 
               {/* Articles per week */}
               <Field label="Articles per week">
-                <Select value={cadence} onValueChange={(v) => v && setCadence(v as Cadence)}>
+                <Select
+                  value={String(cadence)}
+                  onValueChange={(v) => v && setCadence(Number(v) as Cadence)}
+                >
                   <SelectTrigger className="w-60">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CADENCE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
+                    {options.cadences.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
                         {opt.label}
                       </SelectItem>
                     ))}

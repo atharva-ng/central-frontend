@@ -13,6 +13,7 @@ export const ROUTES = {
     begin: "/v1/onboard",
     steps: "/v1/onboarding-steps",
     webEntity: "/v1/web-entity",
+    publishingOptions: "/v1/publishing-options",
   },
   siteIntelligence: {
     process: "/v1/site-intelligence/process",
