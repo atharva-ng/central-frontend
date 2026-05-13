@@ -6,12 +6,18 @@ import { ArrowRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants"
-import { COUNTRIES } from "@/lib/countries"
+import type { OnboardingCountry } from "@/lib/api/onboarding-steps"
 
-export function OnboardingForm() {
+interface OnboardingFormProps {
+  countries: OnboardingCountry[]
+}
+
+export function OnboardingForm({ countries }: OnboardingFormProps) {
   const router = useRouter()
   const [url, setUrl] = useState("")
-  const [countryCode, setCountryCode] = useState("US")
+  const [country, setCountry] = useState(() =>
+    countries.find((c) => c.name === "United States")?.name ?? countries[0]?.name ?? "",
+  )
   const [submitting, setSubmitting] = useState(false)
 
   function stripProtocol(value: string) {
@@ -26,7 +32,6 @@ export function OnboardingForm() {
     const trimmed = stripProtocol(url).trim()
     if (!trimmed || submitting) return
 
-    const country = COUNTRIES.find((c) => c.code === countryCode)?.name
     if (!country) {
       toast.error("Pick a primary market.")
       return
@@ -89,9 +94,9 @@ export function OnboardingForm() {
             Primary market
           </Label>
           <Select
-            value={countryCode}
-            onValueChange={(value) => value && setCountryCode(value)}
-            disabled={submitting}
+            value={country}
+            onValueChange={(value) => value && setCountry(value)}
+            disabled={submitting || countries.length === 0}
           >
             <SelectTrigger
               id="market"
@@ -100,8 +105,8 @@ export function OnboardingForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {COUNTRIES.map((c) => (
-                <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+              {countries.map((c) => (
+                <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -111,7 +116,7 @@ export function OnboardingForm() {
       <div className="flex flex-col gap-3">
         <Button
           className="w-full h-11 group"
-          disabled={!url.trim() || submitting}
+          disabled={!url.trim() || !country || submitting}
           onClick={handleSubmit}
         >
           {submitting ? (

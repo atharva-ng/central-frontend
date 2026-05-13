@@ -11,15 +11,21 @@ export const ONBOARDING_STEPS = {
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[keyof typeof ONBOARDING_STEPS]
 export type RawOnboardingStep = OnboardingStep | "FINALIZED"
 
+export type OnboardingCountry = {
+  name: string
+}
+
 export type OnboardingStepsResponse = {
   step: OnboardingStep
   webEntity: WebEntity | null
+  countries?: OnboardingCountry[]
 }
 
 export type WebEntity = {
   id: string
   websiteUrl: string
   countryCode: string
+  locationCode?: number
   businessContext?: BusinessContext
   competitors?: Competitor[]
   publishing?: PublishingConfig
@@ -30,7 +36,7 @@ export type WebEntity = {
 
 export type PublishingConfig = {
   platform?: string
-  apiKey?: string
+  hasApiKey: boolean
   articlesPerWeek?: number
   publishMode?: string
 }

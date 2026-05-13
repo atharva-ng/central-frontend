@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const { step } = await onboardingServerRepository.getStep()
+  const { step, countries } = await onboardingServerRepository.getStep()
   if (step !== ONBOARDING_STEPS.USER_CREATED) redirect(STEP_TO_PAGE[step])
 
   return (
@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
         <Masthead phase="Onboarding" className="w-full" />
       </header>
       <main className="flex-1 overflow-y-auto px-6 py-16">
-        <OnboardingForm />
+        <OnboardingForm countries={countries ?? []} />
       </main>
     </div>
   )
