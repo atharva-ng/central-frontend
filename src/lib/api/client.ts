@@ -26,6 +26,12 @@ export type {
   ProcessSiteIntelligencePayload,
   ProcessSiteIntelligenceResponse,
 } from "./repositories/site-intelligence.client"
+export { scheduledArticlesRepository } from "./repositories/scheduled-articles.client"
+export type {
+  ListScheduledArticlesParams,
+  ScheduledArticleDTO,
+  ScheduledArticlesResponse,
+} from "./repositories/scheduled-articles.client"
 
 // Step taxonomy + types — shared between client and server.
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
@@ -54,3 +60,5 @@ export type {
 export { useKeywordData } from "./hooks/use-keyword-data"
 export type { KeywordDataLoadState } from "./hooks/use-keyword-data"
 export { useOnboardingStepPolling } from "./hooks/use-onboarding-step-polling"
+export { useScheduledArticles } from "./hooks/use-scheduled-articles"
+export type { ScheduledArticlesLoadState } from "./hooks/use-scheduled-articles"

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import { OnboardingGuard } from "@/components/app/OnboardingGuard"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
@@ -17,5 +18,10 @@ export default async function StrategyLayout({
   const { step } = await onboardingServerRepository.getStep()
   if (step !== ONBOARDING_STEPS.FINALISED) redirect(STEP_TO_PAGE[step])
 
-  return <>{children}</>
+  return (
+    <>
+      <OnboardingGuard expectedStep={ONBOARDING_STEPS.FINALISED} serverStep={step} />
+      {children}
+    </>
+  )
 }

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import { OnboardingGuard } from "@/components/app/OnboardingGuard"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
@@ -19,5 +20,10 @@ export default async function PublishingPage() {
 
   if (!webEntity) redirect(STEP_TO_PAGE[ONBOARDING_STEPS.USER_CREATED])
 
-  return <PublishingForm webEntity={webEntity} options={options} />
+  return (
+    <>
+      <OnboardingGuard expectedStep={ONBOARDING_STEPS.CONTEXT_CREATED} serverStep={step} />
+      <PublishingForm webEntity={webEntity} options={options} />
+    </>
+  )
 }

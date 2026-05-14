@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,16 +35,39 @@ import { toast } from "sonner"
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Skeleton } from "@/components/ui"
 import { AddArticleSheet, EditArticleSheet, StatusBadge, Topbar } from "@/components/app"
 import {
-  SEED_ARTICLES,
   canDropOn,
   formatDayLabel,
   isDraggable,
   type Article,
 } from "@/lib/articles"
+import { useScheduledArticles, type ScheduledArticleDTO } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
+/**
+ * Maps a backend ScheduledArticle into the calendar's richer Article shape.
+ * The scheduled-articles endpoint only carries calendar essentials, so the
+ * SEO/status fields the calendar renders are filled with neutral defaults
+ * until a dedicated article endpoint surfaces them.
+ */
+function toArticle(dto: ScheduledArticleDTO): Article {
+  return {
+    id: dto.id,
+    title: dto.title || dto.keyword,
+    keyword: dto.keyword,
+    funnel: "TOFU",
+    volume: 0,
+    difficulty: 0,
+    cpc: 0,
+    type: dto.articleType ?? "",
+    status: "scheduled",
+    // scheduleDate is always 00:00 UTC of the publish day — take the date part
+    // directly rather than parsing to a local Date (which can shift the day).
+    scheduledFor: dto.scheduleDate.slice(0, 10),
+  }
+}
+
 export default function DashboardPage() {
-  const [articles, setArticles] = useState<Article[]>(SEED_ARTICLES)
+  const [articles, setArticles] = useState<Article[]>([])
   const [editing, setEditing] = useState<Article | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -55,6 +78,17 @@ export default function DashboardPage() {
   const [weekStart, setWeekStart] = useState<Date>(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
+
+  // Scheduled articles for the visible week, fetched from the backend.
+  // Local edits/drag operate on the `articles` copy and reset when the week
+  // (and therefore the fetch) changes — there is no persistence endpoint yet.
+  const load = useScheduledArticles(weekStart)
+  useEffect(() => {
+    // Seeding local state from the fetch result (an external store) — the
+    // legitimate exception in React's set-state-in-effect guidance.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setArticles(load.kind === "ready" ? load.data.articles.map(toArticle) : [])
+  }, [load])
 
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -223,43 +257,58 @@ export default function DashboardPage() {
         </div>
 
         {/* Schedule */}
-        <DndContext
-          sensors={sensors}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onDragCancel={() => setDraggingId(null)}
-        >
-          <div className="flex flex-col">
-            {weekDays.map((day) => {
-              const iso = format(day, "yyyy-MM-dd")
-              const items = articlesByDay.get(iso) ?? []
-              return (
-                <DayColumn
-                  key={iso}
-                  date={day}
-                  iso={iso}
-                  articles={items}
-                  draggingArticle={draggingArticle}
-                  onEdit={openEdit}
-                  onAdd={() => openAdd(iso)}
-                  onGenerate={handleGenerateNow}
-                  onDelete={handleDelete}
-                />
-              )
-            })}
-          </div>
+        {load.kind === "loading" && <ScheduleSkeleton />}
 
-          <DragOverlay>
-            {draggingArticle ? (
-              <div className="bg-card border border-foreground/40 rounded-md px-4 py-3 shadow-lg w-[480px] max-w-[90vw]">
-                <div className="flex items-center gap-2 mb-1">
-                  <StatusBadge status={draggingArticle.status} />
+        {load.kind === "missing-web-entity" && (
+          <ScheduleNotice
+            title="No schedule yet"
+            body="Finish onboarding to generate your publishing calendar."
+          />
+        )}
+
+        {load.kind === "error" && (
+          <ScheduleNotice title="Couldn't load the schedule" body={load.message} />
+        )}
+
+        {load.kind === "ready" && (
+          <DndContext
+            sensors={sensors}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragCancel={() => setDraggingId(null)}
+          >
+            <div className="flex flex-col">
+              {weekDays.map((day) => {
+                const iso = format(day, "yyyy-MM-dd")
+                const items = articlesByDay.get(iso) ?? []
+                return (
+                  <DayColumn
+                    key={iso}
+                    date={day}
+                    iso={iso}
+                    articles={items}
+                    draggingArticle={draggingArticle}
+                    onEdit={openEdit}
+                    onAdd={() => openAdd(iso)}
+                    onGenerate={handleGenerateNow}
+                    onDelete={handleDelete}
+                  />
+                )
+              })}
+            </div>
+
+            <DragOverlay>
+              {draggingArticle ? (
+                <div className="bg-card border border-foreground/40 rounded-md px-4 py-3 shadow-lg w-[480px] max-w-[90vw]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <StatusBadge status={draggingArticle.status} />
+                  </div>
+                  <p className="text-sm font-medium line-clamp-1">{draggingArticle.title}</p>
                 </div>
-                <p className="text-sm font-medium line-clamp-1">{draggingArticle.title}</p>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
         </div>
       </main>
 
@@ -277,6 +326,28 @@ export default function DashboardPage() {
         defaultDate={addDefaultDate}
       />
     </>
+  )
+}
+
+function ScheduleSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ScheduleNotice({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="border border-border rounded-lg bg-card px-6 py-12 flex flex-col items-center gap-1 text-center">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="text-xs text-muted-foreground max-w-sm">{body}</p>
+    </div>
   )
 }
 

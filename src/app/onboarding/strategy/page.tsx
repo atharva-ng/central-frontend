@@ -11,12 +11,11 @@ export default async function StrategyPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const { step, webEntity } = await onboardingServerRepository.getStep()
+  const { step } = await onboardingServerRepository.getStep()
   if (step !== ONBOARDING_STEPS.FINALISED) redirect(STEP_TO_PAGE[step])
 
-  const competitorDomains = (webEntity?.competitors ?? [])
-    .map((c) => (c.domain ?? "").replace(/^www\./, ""))
-    .filter(Boolean)
-
-  return <StrategyClient competitorDomains={competitorDomains} />
+  // The FINALISED step intentionally carries no payload — the strategy screen
+  // is a pure progress animation. Competitor domains are no longer surfaced
+  // here; the layout's OnboardingGuard handles step gating.
+  return <StrategyClient competitorDomains={[]} />
 }

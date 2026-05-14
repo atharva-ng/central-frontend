@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs"
 import { ONBOARDING_POLL_INITIAL_MS, ONBOARDING_POLL_MAX_MS } from "@/constants"
 import { onboardingRepository } from "../repositories/onboarding.client"
 import { STEP_TO_PAGE, type OnboardingStep } from "../onboarding-steps"
+import { writeOnboardingState } from "../onboarding-state-cache"
 
 interface Options {
   expectedStep: OnboardingStep
@@ -35,6 +36,9 @@ export function useOnboardingStepPolling({
       try {
         const { step } = await onboardingRepository.getStep(getToken)
         if (cancelled) return
+        // Keep the OnboardingGuard's cache warm so a navigation right after a
+        // step transition doesn't trigger a redundant re-read.
+        writeOnboardingState(step)
         if (step !== expectedStep) {
           router.push(STEP_TO_PAGE[step])
           return

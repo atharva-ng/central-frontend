@@ -6,6 +6,7 @@ export const ONBOARDING_STEPS = {
   CONTEXT_CREATED: "CONTEXT_CREATED",
   FINALISED: "FINALISED",
   SITE_INTELLIGENCE_DONE: "SITE_INTELLIGENCE_DONE",
+  SCHEDULING_DONE: "SCHEDULING_DONE",
 } as const
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[keyof typeof ONBOARDING_STEPS]
@@ -87,6 +88,7 @@ export const STEP_TO_PAGE: Record<OnboardingStep, string> = {
   CONTEXT_CREATED: APP_ROUTES.onboardingProfile,
   FINALISED: APP_ROUTES.onboardingStrategy,
   SITE_INTELLIGENCE_DONE: APP_ROUTES.dashboard,
+  SCHEDULING_DONE: APP_ROUTES.dashboard,
 }
 
 const ONBOARDING_STEP_ALIASES: Record<string, OnboardingStep> = {

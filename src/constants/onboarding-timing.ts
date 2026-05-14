@@ -12,3 +12,10 @@ export const STRATEGY_COMPETITOR_STAGGER_MS = 600
 
 /** Update cadence for the elapsed-time tracker that drives the staggered reveal. */
 export const STRATEGY_ELAPSED_POLL_MS = 200
+
+/**
+ * How long a cached onboarding-step read stays "fresh". Within this window the
+ * OnboardingGuard trusts the sessionStorage cache and skips re-checking the
+ * step; past it, the next onboarding-page visit re-reads `/v1/onboarding-steps`.
+ */
+export const ONBOARDING_STATE_FRESH_MS = 10_000

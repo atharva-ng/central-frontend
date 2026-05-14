@@ -19,4 +19,7 @@ export const ROUTES = {
     process: "/v1/site-intelligence/process",
     keywordData: "/v1/site-intelligence/keyword-data",
   },
+  scheduledArticles: {
+    list: "/v1/scheduled-articles",
+  },
 } as const

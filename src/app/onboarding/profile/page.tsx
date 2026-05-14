@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import { OnboardingGuard } from "@/components/app/OnboardingGuard"
 import {
   ONBOARDING_STEPS,
   STEP_TO_PAGE,
@@ -17,5 +18,10 @@ export default async function ProfilePage() {
   // Step is CONTEXT_CREATED so a webentity must exist; satisfy TS narrowing.
   if (!webEntity) redirect(STEP_TO_PAGE[ONBOARDING_STEPS.USER_CREATED])
 
-  return <ProfileForm webEntity={webEntity} />
+  return (
+    <>
+      <OnboardingGuard expectedStep={ONBOARDING_STEPS.CONTEXT_CREATED} serverStep={step} />
+      <ProfileForm webEntity={webEntity} />
+    </>
+  )
 }
