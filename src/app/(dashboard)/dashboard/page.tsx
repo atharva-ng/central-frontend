@@ -40,14 +40,15 @@ import {
   isDraggable,
   type Article,
 } from "@/lib/articles"
-import { useScheduledArticles, type ScheduledArticleDTO } from "@/lib/api/client"
+import { useScheduledArticlesByWeeks, type ScheduledArticleDTO } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
 /**
  * Maps a backend ScheduledArticle into the calendar's richer Article shape.
  * The scheduled-articles endpoint only carries calendar essentials, so the
- * SEO/status fields the calendar renders are filled with neutral defaults
- * until a dedicated article endpoint surfaces them.
+ * SEO fields the calendar renders are filled with neutral defaults until a
+ * dedicated article endpoint surfaces them. Status flows through from the
+ * backend directly — the wire format matches the frontend's enum labels.
  */
 function toArticle(dto: ScheduledArticleDTO): Article {
   return {
@@ -59,7 +60,7 @@ function toArticle(dto: ScheduledArticleDTO): Article {
     difficulty: 0,
     cpc: 0,
     type: dto.articleType ?? "",
-    status: "scheduled",
+    status: dto.status,
     // scheduleDate is always 00:00 UTC of the publish day — take the date part
     // directly rather than parsing to a local Date (which can shift the day).
     scheduledFor: dto.scheduleDate.slice(0, 10),
@@ -82,7 +83,9 @@ export default function DashboardPage() {
   // Scheduled articles for the visible week, fetched from the backend.
   // Local edits/drag operate on the `articles` copy and reset when the week
   // (and therefore the fetch) changes — there is no persistence endpoint yet.
-  const load = useScheduledArticles(weekStart)
+  // The hook shares its module-level cache with /articles, so flipping
+  // between the two screens reuses already-fetched weeks.
+  const load = useScheduledArticlesByWeeks([weekStart])
   useEffect(() => {
     // Seeding local state from the fetch result (an external store) — the
     // legitimate exception in React's set-state-in-effect guidance.
@@ -116,7 +119,7 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     return {
       total: weekArticles.length,
-      review: weekArticles.filter((a) => a.status === "review").length,
+      readyForReview: weekArticles.filter((a) => a.status === "readyForReview").length,
       published: weekArticles.filter((a) => a.status === "published").length,
       scheduled: weekArticles.filter((a) => a.status === "scheduled").length,
     }
@@ -251,7 +254,7 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border">
           <Stat label="Articles this week" value={stats.total} />
-          <Stat label="Ready to review" value={stats.review} accent />
+          <Stat label="Ready to review" value={stats.readyForReview} accent />
           <Stat label="Published" value={stats.published} />
           <Stat label="Scheduled" value={stats.scheduled} />
         </div>
@@ -513,7 +516,7 @@ function ArticleRow({
       <div className="flex items-center gap-1 shrink-0">
         {isGenerating ? (
           <Skeleton className="h-8 w-20" />
-        ) : article.status === "review" ? (
+        ) : article.status === "readyForReview" ? (
           <>
             <Button size="sm" onClick={onEdit}>Review</Button>
             <RowMenu article={article} onEdit={onEdit} onGenerate={onGenerate} onDelete={onDelete} />
@@ -556,7 +559,7 @@ function RowMenu({
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={onEdit}>
           <Pencil className="size-3.5" />
-          {article.status === "review" ? "Review" : "Edit"}
+          {article.status === "readyForReview" ? "Review" : "Edit"}
         </DropdownMenuItem>
         {article.status === "scheduled" && (
           <DropdownMenuItem onClick={onGenerate}>

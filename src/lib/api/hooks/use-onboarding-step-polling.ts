@@ -7,6 +7,7 @@ import { ONBOARDING_POLL_INITIAL_MS, ONBOARDING_POLL_MAX_MS } from "@/constants"
 import { onboardingRepository } from "../repositories/onboarding.client"
 import { STEP_TO_PAGE, type OnboardingStep } from "../onboarding-steps"
 import { writeOnboardingState } from "../onboarding-state-cache"
+import { setCachedWebEntity } from "../web-entity-cache"
 
 interface Options {
   expectedStep: OnboardingStep
@@ -34,11 +35,14 @@ export function useOnboardingStepPolling({
     async function poll() {
       if (cancelled) return
       try {
-        const { step } = await onboardingRepository.getStep(getToken)
+        const { step, webEntity } = await onboardingRepository.getStep(getToken)
         if (cancelled) return
         // Keep the OnboardingGuard's cache warm so a navigation right after a
         // step transition doesn't trigger a redundant re-read.
         writeOnboardingState(step)
+        // Warm the web-entity cache too — by the time polling completes, the
+        // dashboard is one navigation away and benefits from the fresh data.
+        if (webEntity) setCachedWebEntity(webEntity.id, webEntity)
         if (step !== expectedStep) {
           router.push(STEP_TO_PAGE[step])
           return

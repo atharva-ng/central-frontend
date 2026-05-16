@@ -105,7 +105,7 @@ export const ARTICLE: ArticleRecord = {
   volume: 60500,
   difficulty: 36,
   cpc: 0.87,
-  status: "review",
+  status: "readyForReview",
   generated_at: "2026-04-30",
   auto_publish_at: "2026-05-02",
   destination: "framer",

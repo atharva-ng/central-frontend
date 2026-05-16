@@ -28,6 +28,10 @@ export type {
 } from "./repositories/site-intelligence.client"
 export { scheduledArticlesRepository } from "./repositories/scheduled-articles.client"
 export type {
+  ArticleDetailDTO,
+  ArticleImageDTO,
+  ArticleMetaDTO,
+  ArticleSchemaDTO,
   ListScheduledArticlesParams,
   ScheduledArticleDTO,
   ScheduledArticlesResponse,
@@ -59,6 +63,23 @@ export type {
 // Hooks — bind a repository to a React component lifecycle.
 export { useKeywordData } from "./hooks/use-keyword-data"
 export type { KeywordDataLoadState } from "./hooks/use-keyword-data"
+export { useWebEntity } from "./hooks/use-web-entity"
+export type { WebEntityLoadState } from "./hooks/use-web-entity"
 export { useOnboardingStepPolling } from "./hooks/use-onboarding-step-polling"
-export { useScheduledArticles } from "./hooks/use-scheduled-articles"
-export type { ScheduledArticlesLoadState } from "./hooks/use-scheduled-articles"
+export { useScheduledArticlesByWeeks } from "./hooks/use-scheduled-articles-by-weeks"
+export type { ScheduledArticlesByWeeksLoadState } from "./hooks/use-scheduled-articles-by-weeks"
+export { useArticleByScheduleId } from "./hooks/use-article-by-schedule-id"
+export type { ArticleByScheduleIdLoadState } from "./hooks/use-article-by-schedule-id"
+
+// Cache accessors — exposed so callers can prime, invalidate, or read the
+// in-memory caches outside the hook lifecycle (e.g. after a mutation).
+export {
+  getCachedKeywordData,
+  setCachedKeywordData,
+  clearCachedKeywordData,
+} from "./keyword-data-cache"
+export {
+  getCachedWebEntity,
+  setCachedWebEntity,
+  clearCachedWebEntity,
+} from "./web-entity-cache"

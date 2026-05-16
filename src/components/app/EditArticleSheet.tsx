@@ -62,7 +62,7 @@ export function EditArticleSheet({
   }
 
   const locked = isMetadataLocked(article)
-  const isGenerated = article.status === "review"
+  const isGenerated = article.status === "readyForReview"
   const isPublished = article.status === "published"
   const isScheduled = article.status === "scheduled"
 

@@ -25,7 +25,7 @@ export const KEYWORD_STATUS_LABEL: Record<KeywordStatus, string> = {
 
 /** Keyword lifecycle status maps to a badge style on the article-status palette. */
 export const KEYWORD_STATUS_TO_BADGE: Record<KeywordStatus, ArticleStatus> = {
-  generated: "review",
+  generated: "readyForReview",
   scheduled: "scheduled",
-  queued: "queued",
+  queued: "draft",
 }

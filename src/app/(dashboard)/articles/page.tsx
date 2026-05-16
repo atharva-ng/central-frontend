@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { addWeeks, format, parseISO, startOfWeek } from "date-fns"
 import {
   Edit3,
   Eye,
@@ -9,9 +10,18 @@ import {
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
+import { Button, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { FunnelBadge, StatusBadge, Topbar } from "@/components/app"
-import { APP_ROUTES, ARTICLE_FILTERS, type ArticleStatus, type Funnel } from "@/constants"
+import {
+  APP_ROUTES,
+  ARTICLE_FILTERS,
+  type ArticleStatus,
+  type Funnel,
+} from "@/constants"
+import {
+  useScheduledArticlesByWeeks,
+  type ScheduledArticleDTO,
+} from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
 interface ArticleRow {
@@ -25,74 +35,22 @@ interface ArticleRow {
   scheduledFor: string | null
 }
 
-const ARTICLES: ArticleRow[] = [
-  {
-    id: "art_001",
-    title: "Master the STAR Method: A Framework That Actually Lands the Offer",
-    keyword: "interview star method",
-    type: "How-To Guide",
+/** Backend articles only carry calendar essentials — the columns the table
+ *  renders that aren't on the DTO yet (funnel, word count) get neutral
+ *  defaults until a richer endpoint exists. */
+function toRow(dto: ScheduledArticleDTO): ArticleRow {
+  return {
+    id: dto.id,
+    title: dto.title || dto.keyword,
+    keyword: dto.keyword,
+    type: dto.articleType ?? "—",
     funnel: "TOFU",
-    words: 2480,
-    status: "review",
-    scheduledFor: "May 2, 2026",
-  },
-  {
-    id: "art_005",
-    title: "15 LeetCode Patterns Every SDE II Should Recognize on Sight",
-    keyword: "leetcode patterns",
-    type: "Listicle / Roundup",
-    funnel: "MOFU",
-    words: 3120,
-    status: "published",
-    scheduledFor: "Apr 29, 2026",
-  },
-  {
-    id: "art_011",
-    title: "System Design Foundations: Scalability, Caching, and the CAP Theorem",
-    keyword: "system design",
-    type: "What-Is / Definition",
-    funnel: "MOFU",
-    words: 2890,
-    status: "scheduled",
-    scheduledFor: "May 4, 2026",
-  },
-  {
-    id: "art_002",
-    title: "AlgoExpert Alternatives: 7 Platforms for Real SDE Interview Prep",
-    keyword: "algoexpert alternatives",
-    type: "Alternatives List",
-    funnel: "MOFU",
-    words: 2640,
-    status: "scheduled",
-    scheduledFor: "May 5, 2026",
-  },
-  {
-    id: "art_003",
-    title: "Scalability Explained: Building Systems That Grow With Demand",
-    keyword: "scalability",
-    type: "What-Is / Definition",
-    funnel: "MOFU",
-    words: 2100,
-    status: "generating",
-    scheduledFor: null,
-  },
-  {
-    id: "art_004",
-    title: "Git Rebase vs Merge: When to Use Each (And Why It Matters in Reviews)",
-    keyword: "git rebase",
-    type: "How-To + Comparison",
-    funnel: "TOFU",
-    words: 1980,
-    status: "scheduled",
-    scheduledFor: "May 6, 2026",
-  },
-]
-
-const STATS = {
-  total: 12,
-  review: 3,
-  published: 2,
-  scheduled: 7,
+    words: 0,
+    status: dto.status,
+    scheduledFor: dto.scheduleDate
+      ? format(parseISO(dto.scheduleDate), "MMM d, yyyy")
+      : null,
+  }
 }
 
 const FILTERS = ARTICLE_FILTERS.map((f) => ({
@@ -106,10 +64,35 @@ const FILTERS = ARTICLE_FILTERS.map((f) => ({
 export default function ArticlesIndexPage() {
   const [tab, setTab] = useState<string>("all")
 
+  // Show the next four Mon-aligned weeks. Week-aligned so cache entries line
+  // up exactly with /dashboard's per-week fetches and can be reused.
+  const weekStarts = useMemo(() => {
+    const start = startOfWeek(new Date(), { weekStartsOn: 1 })
+    return Array.from({ length: 4 }, (_, i) => addWeeks(start, i))
+  }, [])
+  const load = useScheduledArticlesByWeeks(weekStarts)
+
+  const rows = useMemo<ArticleRow[]>(
+    () => (load.kind === "ready" ? load.data.articles.map(toRow) : []),
+    [load],
+  )
+
   const visible = useMemo(() => {
     const f = FILTERS.find((x) => x.id === tab) ?? FILTERS[0]
-    return ARTICLES.filter(f.match)
-  }, [tab])
+    return rows.filter(f.match)
+  }, [rows, tab])
+
+  const stats = useMemo(
+    () => ({
+      total: rows.length,
+      review: rows.filter((a) => a.status === "readyForReview").length,
+      published: rows.filter((a) => a.status === "published").length,
+      scheduled: rows.filter(
+        (a) => a.status === "scheduled" || a.status === "generating",
+      ).length,
+    }),
+    [rows],
+  )
 
   return (
     <>
@@ -119,32 +102,46 @@ export default function ArticlesIndexPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border">
-          <Stat label="Total articles" value={STATS.total} />
-          <Stat label="Ready to review" value={STATS.review} accent />
-          <Stat label="Published" value={STATS.published} />
-          <Stat label="Scheduled / generating" value={STATS.scheduled} />
+          <Stat label="Total articles" value={stats.total} />
+          <Stat label="Ready to review" value={stats.review} accent />
+          <Stat label="Published" value={stats.published} />
+          <Stat label="Scheduled / generating" value={stats.scheduled} />
         </div>
 
-        {/* Filter tabs + table */}
-        <Tabs value={tab} onValueChange={(v) => v && setTab(v)} className="flex flex-col gap-4">
-          <TabsList>
-            {FILTERS.map((f) => (
-              <TabsTrigger key={f.id} value={f.id}>
-                {f.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {load.kind === "loading" && <ArticlesSkeleton />}
 
-          {FILTERS.map((f) => (
-            <TabsContent key={f.id} value={f.id} className="m-0">
-              {visible.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <ArticleTable rows={visible} />
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+        {load.kind === "missing-web-entity" && (
+          <ArticlesNotice
+            title="No articles yet"
+            body="Finish onboarding to start generating articles."
+          />
+        )}
+
+        {load.kind === "error" && (
+          <ArticlesNotice title="Couldn't load articles" body={load.message} />
+        )}
+
+        {load.kind === "ready" && (
+          <Tabs value={tab} onValueChange={(v) => v && setTab(v)} className="flex flex-col gap-4">
+            <TabsList>
+              {FILTERS.map((f) => (
+                <TabsTrigger key={f.id} value={f.id}>
+                  {f.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {FILTERS.map((f) => (
+              <TabsContent key={f.id} value={f.id} className="m-0">
+                {visible.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  <ArticleTable rows={visible} />
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
         </div>
       </main>
     </>
@@ -230,6 +227,36 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function ArticlesSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <Skeleton className="h-10 w-72" />
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="px-4 py-3 border-b border-border last:border-b-0 flex items-center gap-4"
+          >
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ArticlesNotice({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="border border-border rounded-lg bg-card px-6 py-12 flex flex-col items-center gap-1 text-center">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="text-xs text-muted-foreground max-w-sm">{body}</p>
     </div>
   )
 }

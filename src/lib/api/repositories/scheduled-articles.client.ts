@@ -1,6 +1,7 @@
 import { apiFetchClient, type ClerkTokenGetter } from "../fetcher.client"
 import { ROUTES } from "../routes"
 import type { ApiResponse } from "../types"
+import type { ArticleStatus } from "@/constants/article-status"
 
 /** A single planned article on the publish calendar. Mirrors the backend
  *  `dto.ScheduledArticle` shape returned by `/v1/scheduled-articles`. */
@@ -14,6 +15,8 @@ export type ScheduledArticleDTO = {
   reasoning?: string
   /** RFC3339 — always 00:00 UTC of the publish day. */
   scheduleDate: string
+  /** Lifecycle label — matches the backend enum string. */
+  status: ArticleStatus
 }
 
 export type ScheduledArticlesResponse = {
@@ -30,6 +33,36 @@ export type ListScheduledArticlesParams = {
   from?: string
   /** YYYY-MM-DD, inclusive. */
   to?: string
+}
+
+/** Image entry on a generated article. */
+export type ArticleImageDTO = {
+  position: string
+  s3Key?: string
+  alt?: string
+}
+
+/** Meta assets (title, description, social excerpt) on a generated article. */
+export type ArticleMetaDTO = {
+  metaTitle?: string
+  metaDescription?: string
+  socialExcerpt?: string
+}
+
+/** Schema markup blocks (article + FAQ JSON-LD) on a generated article. */
+export type ArticleSchemaDTO = {
+  articleSchema?: unknown
+  faqSchema?: unknown
+}
+
+/** Calendar slot paired with any generated content. When the article has not
+ *  finished generating, `content` / `meta` / `schema` / `images` are absent. */
+export type ArticleDetailDTO = {
+  scheduledArticle: ScheduledArticleDTO
+  content?: string
+  meta?: ArticleMetaDTO
+  schema?: ArticleSchemaDTO
+  images?: ArticleImageDTO[]
 }
 
 /**
@@ -51,6 +84,23 @@ export const scheduledArticlesRepository = {
     const res = await apiFetchClient<ApiResponse<ScheduledArticlesResponse>>(
       getToken,
       `${ROUTES.scheduledArticles.list}?${query.toString()}`,
+    )
+    return res.data
+  },
+
+  /**
+   * Fetches a single article (slot + generated content) by its scheduled
+   * article id. Returns the slot even when generation hasn't finished — the
+   * generated fields will simply be undefined.
+   */
+  async getByScheduleId(
+    getToken: ClerkTokenGetter,
+    scheduledArticleId: string,
+  ): Promise<ArticleDetailDTO> {
+    const query = new URLSearchParams({ scheduledArticleId })
+    const res = await apiFetchClient<ApiResponse<ArticleDetailDTO>>(
+      getToken,
+      `${ROUTES.scheduledArticles.article}?${query.toString()}`,
     )
     return res.data
   },

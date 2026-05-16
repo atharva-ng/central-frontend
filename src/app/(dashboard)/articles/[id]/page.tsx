@@ -627,7 +627,7 @@ function StatusFootnote({ status }: { status: ArticleStatus }) {
       </>
     )
   }
-  if (status === "review" && ARTICLE.auto_publish_at) {
+  if (status === "readyForReview" && ARTICLE.auto_publish_at) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <CalendarDays className="size-3" />
@@ -742,7 +742,7 @@ function ImageRow({ image }: { image: ArticleImage }) {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatAutoPublish(status: ArticleStatus): string | null {
-  if (status === "review" && ARTICLE.auto_publish_at) {
+  if (status === "readyForReview" && ARTICLE.auto_publish_at) {
     return `Auto-publishes ${format(parseISO(ARTICLE.auto_publish_at), "MMM d")} · ${humanRelative(ARTICLE.auto_publish_at)}`
   }
   if (status === "scheduled" && ARTICLE.auto_publish_at) {

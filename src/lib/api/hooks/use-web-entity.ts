@@ -4,22 +4,24 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@clerk/nextjs"
 import { STORAGE_KEYS } from "@/constants/storage-keys"
 import { ApiError } from "../core"
-import {
-  getCachedKeywordData,
-  setCachedKeywordData,
-} from "../keyword-data-cache"
-import { siteIntelligenceRepository, type KeywordDataResponse } from "../repositories/site-intelligence.client"
+import { onboardingRepository } from "../repositories/onboarding.client"
+import type { WebEntity } from "../onboarding-steps"
+import { getCachedWebEntity, setCachedWebEntity } from "../web-entity-cache"
 
-export type KeywordDataLoadState =
+export type WebEntityLoadState =
   | { kind: "loading" }
   | { kind: "missing-web-entity" }
-  | { kind: "not-ready" }
   | { kind: "error"; message: string }
-  | { kind: "ready"; data: KeywordDataResponse }
+  | { kind: "ready"; data: WebEntity }
 
-export function useKeywordData(): KeywordDataLoadState {
+/**
+ * Loads the user's web entity on the client, sharing the module-level cache
+ * with `useOnboardingStepPolling` so the dashboard lands warm whenever the
+ * user just finished polling through onboarding.
+ */
+export function useWebEntity(): WebEntityLoadState {
   const { getToken } = useAuth()
-  const [state, setState] = useState<KeywordDataLoadState>({ kind: "loading" })
+  const [state, setState] = useState<WebEntityLoadState>({ kind: "loading" })
 
   useEffect(() => {
     let cancelled = false
@@ -28,18 +30,16 @@ export function useKeywordData(): KeywordDataLoadState {
     try {
       webEntityId = window.localStorage.getItem(STORAGE_KEYS.webEntityId)
     } catch {
-      // localStorage unavailable
+      // localStorage unavailable.
     }
 
     if (!webEntityId) {
-      // Syncing state from localStorage (an external store) on mount —
-      // the legitimate exception listed in React's set-state-in-effect guidance.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ kind: "missing-web-entity" })
       return
     }
 
-    const cached = getCachedKeywordData(webEntityId)
+    const cached = getCachedWebEntity(webEntityId)
     if (cached) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ kind: "ready", data: cached })
@@ -48,25 +48,21 @@ export function useKeywordData(): KeywordDataLoadState {
 
     async function run() {
       try {
-        const data = await siteIntelligenceRepository.getKeywordData(getToken, webEntityId!)
+        const { webEntity } = await onboardingRepository.getStep(getToken)
         if (cancelled) return
-        setCachedKeywordData(webEntityId!, data)
-        setState({ kind: "ready", data })
-      } catch (err) {
-        if (cancelled) return
-        if (err instanceof ApiError && err.status === 409) {
-          setState({ kind: "not-ready" })
-          return
-        }
-        if (err instanceof ApiError && err.status === 404) {
+        if (!webEntity) {
           setState({ kind: "missing-web-entity" })
           return
         }
+        setCachedWebEntity(webEntityId!, webEntity)
+        setState({ kind: "ready", data: webEntity })
+      } catch (err) {
+        if (cancelled) return
         setState({
           kind: "error",
           message:
             err instanceof ApiError
-              ? `Couldn't load keywords (${err.status}).`
+              ? `Couldn't load the web entity (${err.status}).`
               : "Couldn't reach the server.",
         })
       }

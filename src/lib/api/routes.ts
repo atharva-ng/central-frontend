@@ -21,5 +21,6 @@ export const ROUTES = {
   },
   scheduledArticles: {
     list: "/v1/scheduled-articles",
+    article: "/v1/scheduled-articles/article",
   },
 } as const

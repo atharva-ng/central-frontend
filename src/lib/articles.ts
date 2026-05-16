@@ -42,7 +42,7 @@ export const SEED_ARTICLES: Article[] = [
     difficulty: 36,
     cpc: 0.87,
     type: "How-To Guide",
-    status: "review",
+    status: "readyForReview",
     scheduledFor: format(today, "yyyy-MM-dd"),
   },
   {
@@ -120,7 +120,7 @@ export function lockMessage(a: Article): string {
     return `Locks ${formatDistanceToNowStrict(lockDate(a), { addSuffix: true })} — ${d} day${d === 1 ? "" : "s"} to edit keyword & type`
   }
   if (a.status === "generating") return "Pipeline running — keyword & type are locked"
-  if (a.status === "review") return "Generated — edit content directly. Keyword & type are locked."
+  if (a.status === "readyForReview") return "Generated — edit content directly. Keyword & type are locked."
   return "Published — read-only"
 }
 
