@@ -121,4 +121,28 @@ export const scheduledArticlesRepository = {
     )
     return res.data
   },
+
+  /**
+   * Persists the user's draft edits and flips the scheduled article status
+   * to `draft`. The server takes each field as-is, so the client must send
+   * the full intended state of every editable field.
+   */
+  async saveDraft(
+    getToken: ClerkTokenGetter,
+    payload: SaveArticleDraftPayload,
+  ): Promise<void> {
+    await apiFetchClient<ApiResponse<{ status: string }>>(
+      getToken,
+      ROUTES.scheduledArticles.articleDraft,
+      { method: "PATCH", body: payload },
+    )
+  },
+}
+
+export type SaveArticleDraftPayload = {
+  scheduledArticleId: string
+  articleContent: string
+  metaTitle: string
+  metaDescription: string
+  urlSlug: string
 }

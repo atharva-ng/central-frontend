@@ -199,31 +199,37 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
             {a.scheduledFor ?? "—"}
           </span>
           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Link
-              href={APP_ROUTES.articleView(a.id)}
-              className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="View article"
-            >
-              <Eye className="size-3.5" />
-            </Link>
-            <Link
-              href={APP_ROUTES.articleDetail(a.id)}
-              className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="Edit article"
-            >
-              <Edit3 className="size-3.5" />
-            </Link>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                toast(`Removed "${a.keyword}" from articles`)
-              }}
-              className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
-              aria-label="Delete article"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+            {a.status !== "generating" && a.status !== "scheduled" && a.status !== "published" && (
+              <>
+                <Link
+                  href={APP_ROUTES.articleView(a.id)}
+                  className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  aria-label="View article"
+                >
+                  <Eye className="size-3.5" />
+                </Link>
+                <Link
+                  href={APP_ROUTES.articleDetail(a.id)}
+                  className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  aria-label="Edit article"
+                >
+                  <Edit3 className="size-3.5" />
+                </Link>
+              </>
+            )}
+            {a.status !== "generating" && a.status !== "published" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  toast(`Removed "${a.keyword}" from articles`)
+                }}
+                className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
+                aria-label="Delete article"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
           </div>
         </div>
       ))}

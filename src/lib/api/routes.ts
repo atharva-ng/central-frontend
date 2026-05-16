@@ -22,6 +22,7 @@ export const ROUTES = {
   scheduledArticles: {
     list: "/v1/scheduled-articles",
     article: "/v1/scheduled-articles/article",
+    articleDraft: "/v1/scheduled-articles/article/draft",
   },
   seoBlog: {
     orchestrate: "/v1/seo-blog/orchestrate",

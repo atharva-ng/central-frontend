@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import {
   ArrowLeft,
   CalendarDays,
@@ -29,7 +30,7 @@ import {
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
 import { ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
 import { APP_ROUTES, BRAND, META_DESC_MAX, META_TITLE_MAX, type ArticleStatus } from "@/constants"
-import { useArticleByScheduleId } from "@/lib/api/client"
+import { ApiError, scheduledArticlesRepository, useArticleByScheduleId } from "@/lib/api/client"
 import { articleDtoToRecord } from "@/lib/article-adapter"
 import { clusterLabel, SECTION_HEADINGS, type ArticleImage, type ArticleRecord } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
@@ -56,6 +57,8 @@ export default function ArticleReviewPage() {
 }
 
 function ArticleReview({ article }: { article: ArticleRecord }) {
+  const { getToken } = useAuth()
+
   const [status, setStatus] = useState<ArticleStatus>(article.status)
   const [mode, setMode] = useState<ViewMode>("Edit")
 
@@ -69,15 +72,48 @@ function ArticleReview({ article }: { article: ArticleRecord }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [rewriteOpen, setRewriteOpen] = useState(false)
 
+  // Dirty tracking — flipped by editor changes or meta-field changes, reset
+  // on a successful save. Used purely to gate the Save draft button.
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   // Editing is locked while the article is being generated.
   const isGenerating = status === "generating"
   const effectiveMode: ViewMode = isGenerating ? "Preview" : mode
+
+  const onEditorUpdate = useCallback(() => setDirty(true), [])
 
   const editor = useArticleEditor({
     markdown: article.article_content,
     images: article.images,
     editable: effectiveMode === "Edit",
+    onUpdate: onEditorUpdate,
   })
+
+  async function handleSaveDraft() {
+    if (!editor || saving) return
+    setSaving(true)
+    try {
+      await scheduledArticlesRepository.saveDraft(getToken, {
+        scheduledArticleId: article.id,
+        articleContent: editor.getHTML(),
+        metaTitle,
+        metaDescription: metaDesc,
+        urlSlug: slug,
+      })
+      setStatus("draft")
+      setDirty(false)
+      toast("Saved as draft")
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? `Couldn't save draft (${err.status})`
+          : "Couldn't save draft",
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const autoPublishLine = useMemo(() => formatAutoPublish(status, article), [status, article])
 
@@ -123,7 +159,13 @@ function ArticleReview({ article }: { article: ArticleRecord }) {
         </div>
         <div className="flex items-center gap-2 flex-1 justify-end shrink-0">
           {!isGenerating && (
-            <Button size="sm" variant="outline" onClick={() => toast("Saved as draft")}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={!dirty || saving}
+            >
+              {saving && <Loader2 className="size-3.5 animate-spin" />}
               Save draft
             </Button>
           )}
@@ -371,13 +413,13 @@ function ArticleReview({ article }: { article: ArticleRecord }) {
             <MetaField
               label="Title"
               value={metaTitle}
-              onChange={setMetaTitle}
+              onChange={(v) => { setMetaTitle(v); setDirty(true) }}
               max={META_TITLE_MAX}
             />
             <MetaField
               label="Description"
               value={metaDesc}
-              onChange={setMetaDesc}
+              onChange={(v) => { setMetaDesc(v); setDirty(true) }}
               max={META_DESC_MAX}
               textarea
             />
@@ -387,7 +429,7 @@ function ArticleReview({ article }: { article: ArticleRecord }) {
                 <span className="text-xs text-muted-foreground font-mono select-none">/</span>
                 <Input
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  onChange={(e) => { setSlug(e.target.value); setDirty(true) }}
                   className="border-0 shadow-none px-1 h-9 text-xs font-mono bg-transparent focus-visible:ring-0"
                 />
               </div>

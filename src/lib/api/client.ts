@@ -33,6 +33,7 @@ export type {
   ArticleMetaDTO,
   ArticleSchemaDTO,
   ListScheduledArticlesParams,
+  SaveArticleDraftPayload,
   ScheduledArticleDTO,
   ScheduledArticlesResponse,
 } from "./repositories/scheduled-articles.client"
