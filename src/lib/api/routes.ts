@@ -23,4 +23,7 @@ export const ROUTES = {
     list: "/v1/scheduled-articles",
     article: "/v1/scheduled-articles/article",
   },
+  seoBlog: {
+    orchestrate: "/v1/seo-blog/orchestrate",
+  },
 } as const

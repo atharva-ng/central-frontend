@@ -55,10 +55,27 @@ export type ArticleSchemaDTO = {
   faqSchema?: unknown
 }
 
-/** Calendar slot paired with any generated content. When the article has not
- *  finished generating, `content` / `meta` / `schema` / `images` are absent. */
+/** Calendar slot paired with any generated content + keyword-derived
+ *  analytics + publishing defaults. When the article has not finished
+ *  generating, `content` / `meta` / `schema` / `images` are absent and
+ *  `wordCount` / `generatedAt` / `schemaGenerated` reflect that. */
 export type ArticleDetailDTO = {
   scheduledArticle: ScheduledArticleDTO
+  funnel?: string
+  cluster?: string
+  intent?: string
+  opportunityScore: number
+  volume: number
+  difficulty: number
+  cpc: number
+  destination?: string
+  /** Placeholder strings until the publish flow lands. */
+  urlSlug: string
+  liveUrl: string
+  publishedAt: string
+  wordCount: number
+  generatedAt?: string
+  schemaGenerated: boolean
   content?: string
   meta?: ArticleMetaDTO
   schema?: ArticleSchemaDTO

@@ -5,6 +5,7 @@ export const APP_ROUTES = {
   keywords: "/keywords",
   articles: "/articles",
   articleDetail: (id: string) => `/articles/${id}`,
+  articleView: (id: string) => `/articles/view/${id}`,
   settings: "/settings",
   schedule: "/schedule",
   onboarding: "/onboarding",

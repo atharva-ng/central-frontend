@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { useParams } from "next/navigation"
 import {
   ArrowLeft,
   CalendarDays,
@@ -25,23 +26,44 @@ import {
   format,
   parseISO,
 } from "date-fns"
-import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@/components/ui"
-import { ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SectionLede, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
+import { ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
 import { APP_ROUTES, BRAND, META_DESC_MAX, META_TITLE_MAX, type ArticleStatus } from "@/constants"
-import { ARTICLE, clusterLabel, SECTION_HEADINGS, type ArticleImage } from "@/lib/article-data"
+import { useArticleByScheduleId } from "@/lib/api/client"
+import { articleDtoToRecord } from "@/lib/article-adapter"
+import { clusterLabel, SECTION_HEADINGS, type ArticleImage, type ArticleRecord } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
 
 type ViewMode = "Edit" | "Preview"
 
 export default function ArticleReviewPage() {
-  const [status, setStatus] = useState<ArticleStatus>(ARTICLE.status)
+  const params = useParams<{ id: string }>()
+  const load = useArticleByScheduleId(params?.id)
+
+  const article = useMemo<ArticleRecord | null>(
+    () => (load.kind === "ready" ? articleDtoToRecord(load.data) : null),
+    [load],
+  )
+
+  if (load.kind === "loading") return <ArticleLoading />
+  if (load.kind === "not-found") return <ArticleNotice title="Article not found" body="This article may have been deleted or never existed." />
+  if (load.kind === "error") return <ArticleNotice title="Couldn't load article" body={load.message} />
+  if (!article) return null
+
+  // Key by id + status so a pipeline transition (generating → readyForReview)
+  // re-initialises local form state with the freshly-generated meta/slug.
+  return <ArticleReview key={`${article.id}:${article.status}`} article={article} />
+}
+
+function ArticleReview({ article }: { article: ArticleRecord }) {
+  const [status, setStatus] = useState<ArticleStatus>(article.status)
   const [mode, setMode] = useState<ViewMode>("Edit")
 
-  const [metaTitle, setMetaTitle] = useState(ARTICLE.meta_title)
-  const [metaDesc, setMetaDesc] = useState(ARTICLE.meta_description)
-  const [slug, setSlug] = useState(ARTICLE.url_slug)
+  const [metaTitle, setMetaTitle] = useState(article.meta_title)
+  const [metaDesc, setMetaDesc] = useState(article.meta_description)
+  const [slug, setSlug] = useState(article.url_slug)
 
-  const [destination, setDestination] = useState<string>(ARTICLE.destination)
+  const [destination, setDestination] = useState<string>(article.destination)
   const [publishOpen, setPublishOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -52,12 +74,12 @@ export default function ArticleReviewPage() {
   const effectiveMode: ViewMode = isGenerating ? "Preview" : mode
 
   const editor = useArticleEditor({
-    markdown: ARTICLE.article_content,
-    images: ARTICLE.images,
+    markdown: article.article_content,
+    images: article.images,
     editable: effectiveMode === "Edit",
   })
 
-  const autoPublishLine = useMemo(() => formatAutoPublish(status), [status])
+  const autoPublishLine = useMemo(() => formatAutoPublish(status, article), [status, article])
 
   function handlePublish() {
     setPublishing(true)
@@ -71,7 +93,7 @@ export default function ArticleReviewPage() {
 
   function copyMarkdown() {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(ARTICLE.article_content)
+      navigator.clipboard.writeText(article.article_content)
     }
     toast("Markdown copied to clipboard")
   }
@@ -91,7 +113,7 @@ export default function ArticleReviewPage() {
         </div>
         <div className="flex-[2] min-w-0 flex flex-col items-center justify-center gap-0.5">
           <span className="text-sm font-medium truncate block max-w-md">
-            {ARTICLE.title}
+            {article.title}
           </span>
           {autoPublishLine && (
             <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -199,7 +221,7 @@ export default function ArticleReviewPage() {
                 </Popover>
               )}
               <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
-                {ARTICLE.word_count.toLocaleString()} words · 11 min read
+                {article.word_count.toLocaleString()} words · {readingTime(article.word_count)} min read
               </span>
             </div>
           </div>
@@ -238,7 +260,7 @@ export default function ArticleReviewPage() {
           <Section number="01" label="Status">
             <div className="rounded-md border border-border bg-background flex flex-col items-center gap-1.5 py-3 px-4">
               <StatusBadge status={status} />
-              <StatusFootnote status={status} />
+              <StatusFootnote status={status} article={article} />
             </div>
           </Section>
 
@@ -247,19 +269,19 @@ export default function ArticleReviewPage() {
           {/* Section 2 — Opportunity (prominent) */}
           <Section number="02" label="Opportunity">
             <div className="flex items-end justify-between gap-4">
-              <OpportunityScore value={ARTICLE.opportunity_score} size="lg" showInfo />
+              <OpportunityScore value={article.opportunity_score} size="lg" showInfo />
               <div className="flex flex-col items-end gap-0.5 text-right">
                 <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   Inputs
                 </span>
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
-                  Vol {ARTICLE.volume.toLocaleString()}
+                  Vol {article.volume.toLocaleString()}
                 </span>
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
-                  KD {ARTICLE.difficulty}
+                  KD {article.difficulty}
                 </span>
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
-                  CPC ${ARTICLE.cpc.toFixed(2)}
+                  CPC ${article.cpc.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -271,18 +293,18 @@ export default function ArticleReviewPage() {
           <Section number="03" label="Details">
             <dl className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-4 text-sm">
               <Row label="Keyword">
-                <span className="font-mono text-xs">{ARTICLE.keyword}</span>
+                <span className="font-mono text-xs">{article.keyword}</span>
               </Row>
-              <Row label="Type">{ARTICLE.type}</Row>
+              <Row label="Type">{article.type}</Row>
               <Row label="Funnel">
-                <FunnelBadge funnel={ARTICLE.funnel} />
+                <FunnelBadge funnel={article.funnel} />
               </Row>
-              <Row label="Cluster">{clusterLabel(ARTICLE.cluster_id)}</Row>
+              <Row label="Cluster">{clusterLabel(article.cluster_id)}</Row>
               <Row label="Words">
-                <span className="font-mono tabular-nums">{ARTICLE.word_count.toLocaleString()}</span>
+                <span className="font-mono tabular-nums">{article.word_count.toLocaleString()}</span>
               </Row>
               <Row label="Intent">
-                <span className="capitalize">{ARTICLE.intent}</span>
+                <span className="capitalize">{article.intent}</span>
               </Row>
             </dl>
           </Section>
@@ -381,13 +403,13 @@ export default function ArticleReviewPage() {
           <Section number="06" label="Schema">
             <SchemaItem
               title="Article schema"
-              json={ARTICLE.schema.article}
-              generated={ARTICLE.schema.generated}
+              json={article.schema.article}
+              generated={article.schema.generated}
             />
             <SchemaItem
               title="FAQ schema"
-              json={ARTICLE.schema.faq}
-              generated={ARTICLE.schema.generated}
+              json={article.schema.faq}
+              generated={article.schema.generated}
             />
           </Section>
 
@@ -395,7 +417,7 @@ export default function ArticleReviewPage() {
 
           {/* Section 7 — Images */}
           <Section number="07" label="Images">
-            {ARTICLE.images.map((img) => (
+            {article.images.map((img) => (
               <ImageRow key={img.position} image={img} />
             ))}
           </Section>
@@ -448,9 +470,9 @@ export default function ArticleReviewPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-md border border-border bg-muted/40 p-3 flex flex-col gap-1.5">
-            <p className="text-sm font-medium leading-snug">{ARTICLE.title}</p>
+            <p className="text-sm font-medium leading-snug">{article.title}</p>
             <p className="text-[11px] text-muted-foreground font-mono tabular-nums">
-              /{slug} · {ARTICLE.word_count.toLocaleString()} words · {ARTICLE.funnel}
+              /{slug} · {article.word_count.toLocaleString()} words · {article.funnel}
             </p>
           </div>
           <DialogFooter className="flex-row justify-end gap-2 sm:justify-end">
@@ -610,36 +632,36 @@ function MetaField({
   )
 }
 
-function StatusFootnote({ status }: { status: ArticleStatus }) {
+function StatusFootnote({ status, article }: { status: ArticleStatus; article: ArticleRecord }) {
   if (status === "published") {
     return (
       <>
         <span className="text-[11px] text-muted-foreground">
-          Published {ARTICLE.published_at ? format(parseISO(ARTICLE.published_at), "MMM d, yyyy") : "today"}
+          Published {article.published_at ? format(parseISO(article.published_at), "MMM d, yyyy") : "today"}
         </span>
         <a
           href="#"
           className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-mono truncate max-w-[260px] hover:text-foreground transition-colors"
         >
-          {BRAND.framerHost}/{ARTICLE.url_slug}
+          {BRAND.framerHost}/{article.url_slug}
           <ExternalLink className="size-3" />
         </a>
       </>
     )
   }
-  if (status === "readyForReview" && ARTICLE.auto_publish_at) {
+  if (status === "readyForReview" && article.auto_publish_at) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <CalendarDays className="size-3" />
-        Auto-publishes {format(parseISO(ARTICLE.auto_publish_at), "MMM d, yyyy")} · {humanRelative(ARTICLE.auto_publish_at)}
+        Auto-publishes {format(parseISO(article.auto_publish_at), "MMM d, yyyy")} · {humanRelative(article.auto_publish_at)}
       </span>
     )
   }
-  if (status === "scheduled" && ARTICLE.auto_publish_at) {
+  if (status === "scheduled" && article.auto_publish_at) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <CalendarDays className="size-3" />
-        Scheduled for {format(parseISO(ARTICLE.auto_publish_at), "MMM d, yyyy")}
+        Scheduled for {format(parseISO(article.auto_publish_at), "MMM d, yyyy")}
       </span>
     )
   }
@@ -651,6 +673,37 @@ function StatusFootnote({ status }: { status: ArticleStatus }) {
     )
   }
   return null
+}
+
+function ArticleLoading() {
+  return (
+    <div className="flex flex-1 flex-col gap-6 p-8">
+      <Skeleton className="h-6 w-2/3 max-w-md" />
+      <Skeleton className="h-4 w-1/3 max-w-xs" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  )
+}
+
+function ArticleNotice({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="flex flex-1 items-center justify-center p-8">
+      <div className="border border-border rounded-lg bg-card px-6 py-12 flex flex-col items-center gap-2 text-center max-w-md">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{body}</p>
+        <Link
+          href={APP_ROUTES.articles}
+          className="text-xs text-primary mt-2 hover:underline"
+        >
+          ← Back to articles
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function readingTime(words: number): number {
+  return Math.max(1, Math.round(words / 225))
 }
 
 function SchemaItem({
@@ -741,15 +794,15 @@ function ImageRow({ image }: { image: ArticleImage }) {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatAutoPublish(status: ArticleStatus): string | null {
-  if (status === "readyForReview" && ARTICLE.auto_publish_at) {
-    return `Auto-publishes ${format(parseISO(ARTICLE.auto_publish_at), "MMM d")} · ${humanRelative(ARTICLE.auto_publish_at)}`
+function formatAutoPublish(status: ArticleStatus, article: ArticleRecord): string | null {
+  if (status === "readyForReview" && article.auto_publish_at) {
+    return `Auto-publishes ${format(parseISO(article.auto_publish_at), "MMM d")} · ${humanRelative(article.auto_publish_at)}`
   }
-  if (status === "scheduled" && ARTICLE.auto_publish_at) {
-    return `Scheduled for ${format(parseISO(ARTICLE.auto_publish_at), "MMM d")}`
+  if (status === "scheduled" && article.auto_publish_at) {
+    return `Scheduled for ${format(parseISO(article.auto_publish_at), "MMM d")}`
   }
-  if (status === "published" && ARTICLE.published_at) {
-    return `Published ${format(parseISO(ARTICLE.published_at), "MMM d")}`
+  if (status === "published" && article.published_at) {
+    return `Published ${format(parseISO(article.published_at), "MMM d")}`
   }
   return null
 }

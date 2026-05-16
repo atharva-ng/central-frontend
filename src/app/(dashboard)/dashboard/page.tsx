@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useAuth } from "@clerk/nextjs"
 import {
   ChevronLeft,
   ChevronRight,
@@ -40,7 +41,7 @@ import {
   isDraggable,
   type Article,
 } from "@/lib/articles"
-import { useScheduledArticlesByWeeks, type ScheduledArticleDTO } from "@/lib/api/client"
+import { seoBlogRepository, useScheduledArticlesByWeeks, type ScheduledArticleDTO } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
 /**
@@ -68,12 +69,19 @@ function toArticle(dto: ScheduledArticleDTO): Article {
 }
 
 export default function DashboardPage() {
+  const { getToken } = useAuth()
   const [articles, setArticles] = useState<Article[]>([])
   const [editing, setEditing] = useState<Article | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [addDefaultDate, setAddDefaultDate] = useState<string | undefined>()
   const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  // Tracks scheduled-article IDs with an in-flight orchestrate request.
+  // The optimistic status flip to "generating" already hides the trigger,
+  // but two clicks can fire before React commits — this set is the
+  // belt-and-suspenders dedupe so the second click is dropped.
+  const generatingRef = useRef<Set<string>>(new Set())
 
   // Week state — anchor to Monday
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -151,11 +159,30 @@ export default function DashboardPage() {
     toast(`Scheduled “${created.keyword}” for ${format(parseISO(created.scheduledFor), "MMM d")}`)
   }
 
-  function handleGenerateNow(a: Article) {
+  async function handleGenerateNow(a: Article) {
+    // Drop duplicate clicks while a request is mid-flight.
+    if (generatingRef.current.has(a.id)) return
+    generatingRef.current.add(a.id)
+
     setArticles((prev) =>
       prev.map((x) => (x.id === a.id ? { ...x, status: "generating" } : x))
     )
     toast("Generation started — usually takes 2–3 minutes")
+
+    try {
+      await seoBlogRepository.orchestrate(getToken, {
+        scheduledArticleId: a.id,
+        articleType: a.type,
+        proposedTitle: a.title,
+      })
+    } catch {
+      // Roll back the optimistic flip so the user can retry.
+      setArticles((prev) =>
+        prev.map((x) => (x.id === a.id ? { ...x, status: "scheduled" } : x))
+      )
+      generatingRef.current.delete(a.id)
+      toast("Couldn't start generation — please try again")
+    }
   }
 
   function handleDelete(a: Article) {

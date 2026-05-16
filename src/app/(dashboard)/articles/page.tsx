@@ -200,7 +200,7 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
           </span>
           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
-              href={APP_ROUTES.articleDetail(a.id)}
+              href={APP_ROUTES.articleView(a.id)}
               className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="View article"
             >

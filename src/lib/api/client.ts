@@ -36,6 +36,11 @@ export type {
   ScheduledArticleDTO,
   ScheduledArticlesResponse,
 } from "./repositories/scheduled-articles.client"
+export { seoBlogRepository } from "./repositories/seo-blog.client"
+export type {
+  OrchestratePayload,
+  OrchestrateResponse,
+} from "./repositories/seo-blog.client"
 
 // Step taxonomy + types — shared between client and server.
 export { ONBOARDING_STEPS, STEP_TO_PAGE } from "./onboarding-steps"
