@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Sparkles,
   Pencil,
+  RotateCcw,
 } from "lucide-react"
 import {
   DndContext,
@@ -88,6 +89,8 @@ export default function DashboardPage() {
   // but two clicks can fire before React commits — this set is the
   // belt-and-suspenders dedupe so the second click is dropped.
   const generatingRef = useRef<Set<string>>(new Set())
+  // Mirror dedupe for the retry button on errored rows.
+  const retryingRef = useRef<Set<string>>(new Set())
 
   // Per-article debounce state for drag-drop reschedules. Each entry pairs the
   // pending setTimeout handle with the original ISO date so the optimistic
@@ -209,6 +212,29 @@ export default function DashboardPage() {
       updateCachedArticle(a.id, { status: "scheduled" })
       generatingRef.current.delete(a.id)
       toast("Couldn't start generation — please try again")
+    }
+  }
+
+  async function handleRetry(a: Article) {
+    if (retryingRef.current.has(a.id)) return
+    retryingRef.current.add(a.id)
+
+    setArticles((prev) =>
+      prev.map((x) => (x.id === a.id ? { ...x, status: "generating" } : x))
+    )
+    updateCachedArticle(a.id, { status: "generating" })
+    toast(`Retrying generation for "${a.keyword}"`)
+
+    try {
+      await seoBlogRepository.retry(getToken, { scheduledArticleId: a.id })
+    } catch {
+      // Restore the error state so the user can retry again.
+      setArticles((prev) =>
+        prev.map((x) => (x.id === a.id ? { ...x, status: "error" } : x))
+      )
+      updateCachedArticle(a.id, { status: "error" })
+      retryingRef.current.delete(a.id)
+      toast("Couldn't retry generation — please try again")
     }
   }
 
@@ -394,6 +420,7 @@ export default function DashboardPage() {
                     onEdit={openEdit}
                     onAdd={() => openAdd(iso)}
                     onGenerate={handleGenerateNow}
+                    onRetry={handleRetry}
                     onDelete={handleDelete}
                   />
                 )
@@ -476,6 +503,7 @@ function DayColumn({
   onEdit,
   onAdd,
   onGenerate,
+  onRetry,
   onDelete,
 }: {
   date: Date
@@ -485,6 +513,7 @@ function DayColumn({
   onEdit: (a: Article) => void
   onAdd: () => void
   onGenerate: (a: Article) => void
+  onRetry: (a: Article) => void
   onDelete: (a: Article) => void
 }) {
   const valid = draggingArticle ? canDropOn(draggingArticle, date) : true
@@ -542,6 +571,7 @@ function DayColumn({
               article={a}
               onEdit={() => onEdit(a)}
               onGenerate={() => onGenerate(a)}
+              onRetry={() => onRetry(a)}
               onDelete={() => onDelete(a)}
             />
           ))}
@@ -555,11 +585,13 @@ function ArticleRow({
   article,
   onEdit,
   onGenerate,
+  onRetry,
   onDelete,
 }: {
   article: Article
   onEdit: () => void
   onGenerate: () => void
+  onRetry: () => void
   onDelete: () => void
 }) {
   const draggable = isDraggable(article)
@@ -569,6 +601,7 @@ function ArticleRow({
   })
 
   const isGenerating = article.status === "generating"
+  const isError = article.status === "error"
 
   return (
     <div
@@ -619,6 +652,14 @@ function ArticleRow({
       <div className="flex items-center gap-1 shrink-0">
         {isGenerating ? (
           <Skeleton className="h-8 w-20" />
+        ) : isError ? (
+          <>
+            <Button size="sm" variant="outline" onClick={onRetry}>
+              <RotateCcw className="size-3.5" />
+              Retry
+            </Button>
+            <RowMenu article={article} onEdit={onEdit} onGenerate={onGenerate} onDelete={onDelete} />
+          </>
         ) : article.status === "readyForReview" ? (
           <>
             <Button size="sm" onClick={onEdit}>Review</Button>

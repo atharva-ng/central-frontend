@@ -103,6 +103,13 @@ export function isMetadataLocked(a: Article): boolean {
   return a.status !== "scheduled"
 }
 
+/** An article is in an errored generation state — the backend derives this
+ *  when the linked WebEntityMasterContext is in CGEStatusError. Surfaces a
+ *  retry affordance on the dashboard and /articles. */
+export function isErrored(a: Article): boolean {
+  return a.status === "error"
+}
+
 /**
  * "Non-published article" per the backend contract:
  *   - status !== "published"
@@ -138,6 +145,7 @@ export function lockMessage(a: Article): string {
     return `Locks ${formatDistanceToNowStrict(lockDate(a), { addSuffix: true })} — ${d} day${d === 1 ? "" : "s"} to edit keyword & type`
   }
   if (a.status === "generating") return "Pipeline running — keyword & type are locked"
+  if (a.status === "error") return "Generation failed — retry to run the pipeline again"
   if (a.status === "readyForReview") return "Generated — edit content directly. Keyword & type are locked."
   if (a.status === "draft") {
     return isNonPublished(a)
@@ -153,7 +161,7 @@ export function lockMessage(a: Article): string {
  * are draggable while their scheduledFor stays in the future.
  */
 export function isDraggable(a: Article): boolean {
-  if (a.status === "generating" || a.status === "published") return false
+  if (a.status === "generating" || a.status === "published" || a.status === "error") return false
   return isNonPublished(a)
 }
 

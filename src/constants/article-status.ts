@@ -9,6 +9,11 @@ export const ARTICLE_STATUSES = [
   "readyForReview",
   "draft",
   "published",
+  // `error` is a wire-only label the backend derives when the linked
+  // WebEntityMasterContext is in CGEStatusError. The article doc itself
+  // stays at `generating` — a successful retry flips this row back to
+  // `generating` automatically without any explicit status write.
+  "error",
 ] as const
 
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number]
@@ -42,6 +47,11 @@ export const ARTICLE_STATUS_STYLES: Record<
     className: "border-border bg-muted text-muted-foreground",
     dot: "bg-muted-foreground/40",
   },
+  error: {
+    label: "Error",
+    className: "border-destructive/30 bg-destructive/10 text-destructive",
+    dot: "bg-destructive",
+  },
 }
 
 export const ARTICLE_FILTERS = [
@@ -51,6 +61,7 @@ export const ARTICLE_FILTERS = [
   { id: "scheduled", label: "Scheduled" },
   { id: "published", label: "Published" },
   { id: "generating", label: "Generating" },
+  { id: "error", label: "Error" },
 ] as const
 
 export type ArticleFilterId = (typeof ARTICLE_FILTERS)[number]["id"]

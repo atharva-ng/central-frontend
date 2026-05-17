@@ -96,6 +96,7 @@ function SettingsForm({ webEntity, options }: { webEntity: WebEntity; options: P
   // only the apiKey on `publishing`.
   const [framerUrl, setFramerUrl] = useState("")
   const [framerToken, setFramerToken] = useState("")
+  // cadence is read-only here — set during onboarding, never mutated from settings.
   const [cadence, setCadence] = useState<Cadence>(initial.cadence)
   const [publishMode, setPublishMode] = useState<PublishMode>(initial.publishMode)
 
@@ -155,13 +156,13 @@ function SettingsForm({ webEntity, options }: { webEntity: WebEntity; options: P
     const newToken = framerToken.trim()
     const publishingChanged =
       platform !== orig.platform ||
-      cadence !== orig.cadence ||
       publishMode !== orig.publishMode ||
       newToken.length > 0
     if (publishingChanged) {
+      // articlesPerWeek is omitted — the server preserves the existing value
+      // because it's not editable from settings.
       const value: Record<string, unknown> = {
         platform,
-        articlesPerWeek: cadence,
         publishMode,
       }
       if (newToken.length > 0) value.apiKey = newToken
@@ -366,12 +367,12 @@ function SettingsForm({ webEntity, options }: { webEntity: WebEntity; options: P
                 </div>
               )}
 
-              {/* Articles per week */}
-              <Field label="Articles per week">
-                <Select
-                  value={String(cadence)}
-                  onValueChange={(v) => v && setCadence(Number(v) as Cadence)}
-                >
+              {/* Articles per week — read-only, set during onboarding */}
+              <Field
+                label="Articles per week"
+                hint={<span className="text-[11px] text-muted-foreground/70">Read-only</span>}
+              >
+                <Select value={String(cadence)} disabled>
                   <SelectTrigger className="w-60">
                     <SelectValue />
                   </SelectTrigger>

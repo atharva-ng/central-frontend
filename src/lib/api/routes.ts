@@ -28,5 +28,6 @@ export const ROUTES = {
   },
   seoBlog: {
     orchestrate: "/v1/seo-blog/orchestrate",
+    retry: "/v1/seo-blog/retry",
   },
 } as const

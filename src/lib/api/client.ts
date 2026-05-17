@@ -42,6 +42,7 @@ export { seoBlogRepository } from "./repositories/seo-blog.client"
 export type {
   OrchestratePayload,
   OrchestrateResponse,
+  RetryPayload,
 } from "./repositories/seo-blog.client"
 
 // Step taxonomy + types — shared between client and server.

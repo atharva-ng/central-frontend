@@ -1,12 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { addWeeks, format, parseISO, startOfWeek } from "date-fns"
 import {
   Edit3,
   Eye,
   FileText,
+  RotateCcw,
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -20,6 +22,8 @@ import {
 } from "@/constants"
 import { toFunnel } from "@/constants/funnels"
 import {
+  seoBlogRepository,
+  updateCachedArticle,
   useScheduledArticlesByWeeks,
   type ScheduledArticleDTO,
 } from "@/lib/api/client"
@@ -62,7 +66,29 @@ const FILTERS = ARTICLE_FILTERS.map((f) => ({
 }))
 
 export default function ArticlesIndexPage() {
+  const { getToken } = useAuth()
   const [tab, setTab] = useState<string>("all")
+
+  // Dedupe in-flight retry clicks per article — the optimistic flip to
+  // "generating" hides the button, but two clicks can fire before React
+  // commits. Mirrors the dashboard's generatingRef pattern.
+  const retryingRef = useRef<Set<string>>(new Set())
+
+  async function handleRetry(articleId: string, keyword: string) {
+    if (retryingRef.current.has(articleId)) return
+    retryingRef.current.add(articleId)
+
+    updateCachedArticle(articleId, { status: "generating" })
+    toast(`Retrying generation for "${keyword}"`)
+
+    try {
+      await seoBlogRepository.retry(getToken, { scheduledArticleId: articleId })
+    } catch {
+      updateCachedArticle(articleId, { status: "error" })
+      retryingRef.current.delete(articleId)
+      toast("Couldn't retry generation — please try again")
+    }
+  }
 
   // Show the next four Mon-aligned weeks. Week-aligned so cache entries line
   // up exactly with /dashboard's per-week fetches and can be reused.
@@ -136,7 +162,7 @@ export default function ArticlesIndexPage() {
                 {visible.length === 0 ? (
                   <EmptyState />
                 ) : (
-                  <ArticleTable rows={visible} />
+                  <ArticleTable rows={visible} onRetry={handleRetry} />
                 )}
               </TabsContent>
             ))}
@@ -162,7 +188,13 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   )
 }
 
-function ArticleTable({ rows }: { rows: ArticleRow[] }) {
+function ArticleTable({
+  rows,
+  onRetry,
+}: {
+  rows: ArticleRow[]
+  onRetry: (articleId: string, keyword: string) => void
+}) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Header */}
@@ -177,62 +209,87 @@ function ArticleTable({ rows }: { rows: ArticleRow[] }) {
         <span className="text-right">Actions</span>
       </div>
       {/* Rows */}
-      {rows.map((a) => (
-        <div
-          key={a.id}
-          className="grid grid-cols-[1fr_180px_140px_70px_80px_140px_120px_90px] gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors group"
-        >
-          <Link
-            href={APP_ROUTES.articleDetail(a.id)}
-            className="text-sm font-medium truncate hover:text-primary transition-colors"
+      {rows.map((a) => {
+        const isError = a.status === "error"
+        // Error rows only get retry + delete — no view/edit, since the
+        // article never made it to a reviewable state.
+        const showViewEdit =
+          !isError &&
+          a.status !== "generating" &&
+          a.status !== "scheduled" &&
+          a.status !== "published"
+        const showDelete = a.status !== "generating" && a.status !== "published"
+
+        return (
+          <div
+            key={a.id}
+            className="grid grid-cols-[1fr_180px_140px_70px_80px_140px_120px_90px] gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors group"
           >
-            {a.title}
-          </Link>
-          <span className="font-mono text-[11px] text-muted-foreground truncate">{a.keyword}</span>
-          <span className="text-xs truncate">{a.type}</span>
-          <span><FunnelBadge funnel={a.funnel} /></span>
-          <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
-            {a.words.toLocaleString()}
-          </span>
-          <span><StatusBadge status={a.status} /></span>
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            {a.scheduledFor ?? "—"}
-          </span>
-          <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            {a.status !== "generating" && a.status !== "scheduled" && a.status !== "published" && (
-              <>
-                <Link
-                  href={APP_ROUTES.articleView(a.id)}
+            <Link
+              href={APP_ROUTES.articleDetail(a.id)}
+              className="text-sm font-medium truncate hover:text-primary transition-colors"
+            >
+              {a.title}
+            </Link>
+            <span className="font-mono text-[11px] text-muted-foreground truncate">{a.keyword}</span>
+            <span className="text-xs truncate">{a.type}</span>
+            <span><FunnelBadge funnel={a.funnel} /></span>
+            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+              {a.words.toLocaleString()}
+            </span>
+            <span><StatusBadge status={a.status} /></span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {a.scheduledFor ?? "—"}
+            </span>
+            <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isError && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onRetry(a.id, a.keyword)
+                  }}
                   className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  aria-label="View article"
+                  aria-label="Retry generation"
                 >
-                  <Eye className="size-3.5" />
-                </Link>
-                <Link
-                  href={APP_ROUTES.articleDetail(a.id)}
-                  className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  aria-label="Edit article"
+                  <RotateCcw className="size-3.5" />
+                </button>
+              )}
+              {showViewEdit && (
+                <>
+                  <Link
+                    href={APP_ROUTES.articleView(a.id)}
+                    className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    aria-label="View article"
+                  >
+                    <Eye className="size-3.5" />
+                  </Link>
+                  <Link
+                    href={APP_ROUTES.articleDetail(a.id)}
+                    className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    aria-label="Edit article"
+                  >
+                    <Edit3 className="size-3.5" />
+                  </Link>
+                </>
+              )}
+              {showDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    toast(`Removed "${a.keyword}" from articles`)
+                  }}
+                  className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
+                  aria-label="Delete article"
                 >
-                  <Edit3 className="size-3.5" />
-                </Link>
-              </>
-            )}
-            {a.status !== "generating" && a.status !== "published" && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  toast(`Removed "${a.keyword}" from articles`)
-                }}
-                className="size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
-                aria-label="Delete article"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            )}
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
