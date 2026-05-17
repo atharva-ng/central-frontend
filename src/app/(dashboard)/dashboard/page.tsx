@@ -37,7 +37,7 @@ import {
 } from "date-fns"
 import { toast } from "sonner"
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Skeleton } from "@/components/ui"
-import { AddArticleSheet, EditArticleSheet, StatusBadge, Topbar } from "@/components/app"
+import { AddArticleSheet, DashboardOnboardingGuard, EditArticleSheet, StatusBadge, Topbar } from "@/components/app"
 import {
   canDropOn,
   formatDayLabel,
@@ -323,6 +323,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <DashboardOnboardingGuard />
       <Topbar
         title="Schedule"
         action={
