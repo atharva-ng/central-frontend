@@ -13,6 +13,7 @@ export const ROUTES = {
     begin: "/v1/onboard",
     steps: "/v1/onboarding-steps",
     webEntity: "/v1/web-entity",
+    webEntityMe: "/v1/web-entity/me",
     publishingOptions: "/v1/publishing-options",
   },
   siteIntelligence: {
@@ -23,6 +24,7 @@ export const ROUTES = {
     list: "/v1/scheduled-articles",
     article: "/v1/scheduled-articles/article",
     articleDraft: "/v1/scheduled-articles/article/draft",
+    articleEdit: "/v1/scheduled-articles/article/edit",
   },
   seoBlog: {
     orchestrate: "/v1/seo-blog/orchestrate",

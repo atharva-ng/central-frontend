@@ -1,4 +1,4 @@
-import { addDays, differenceInHours, format, formatDistanceToNowStrict, isBefore, parseISO, startOfDay } from "date-fns"
+import { addDays, differenceInHours, format, formatDistanceToNowStrict, parseISO, startOfDay } from "date-fns"
 import { ARTICLE_LOCK_DAYS_OFFSET, type ArticleStatus, type Funnel } from "@/constants"
 
 export { ARTICLE_TYPES } from "@/constants/articles"
@@ -14,6 +14,7 @@ export interface Article {
   type: string
   status: ArticleStatus
   scheduledFor: string // ISO yyyy-mm-dd
+  additionalInstructions?: string
 }
 
 // Dummy data anchored to "today". The dev preview reads `new Date()` at render
@@ -102,6 +103,23 @@ export function isMetadataLocked(a: Article): boolean {
   return a.status !== "scheduled"
 }
 
+/**
+ * "Non-published article" per the backend contract:
+ *   - status !== "published"
+ *   - scheduledFor strictly > today (UTC)
+ * Reschedule (drag-drop + sidebar date picker) and most edits hinge on this.
+ */
+export function isNonPublished(a: Article): boolean {
+  if (a.status === "published") return false
+  // Compare on a UTC date boundary to match the backend's "today" definition.
+  // The article's scheduledFor is a YYYY-MM-DD string representing UTC midnight.
+  const now = new Date()
+  const todayUtcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const [y, m, d] = a.scheduledFor.split("-").map(Number)
+  const articleUtcMidnight = Date.UTC(y, m - 1, d)
+  return articleUtcMidnight > todayUtcMidnight
+}
+
 /** A scheduled article's auto-generation kicks off 24h before scheduledFor. */
 export function lockDate(a: Article): Date {
   return addDays(parseISO(a.scheduledFor), ARTICLE_LOCK_DAYS_OFFSET)
@@ -121,21 +139,41 @@ export function lockMessage(a: Article): string {
   }
   if (a.status === "generating") return "Pipeline running — keyword & type are locked"
   if (a.status === "readyForReview") return "Generated — edit content directly. Keyword & type are locked."
+  if (a.status === "draft") {
+    return isNonPublished(a)
+      ? "Draft — title editable. Reschedule until the publish date arrives."
+      : "Draft — read-only"
+  }
   return "Published — read-only"
 }
 
-/** Whether the row can be dragged to another day. */
+/**
+ * Whether the row can be dragged to another day. Matches the backend
+ * "non-published, non-generating" rule: scheduled / draft / readyForReview
+ * are draggable while their scheduledFor stays in the future.
+ */
 export function isDraggable(a: Article): boolean {
-  return a.status === "scheduled"
+  if (a.status === "generating" || a.status === "published") return false
+  return isNonPublished(a)
 }
 
 /** Whether `target` is a valid drop target for article `a`.
- *  Scheduled articles can move freely — but the new date must leave at least 24h
- *  before generation kicks off, otherwise auto-pipeline fires immediately. */
+ *  Reschedule must land strictly > today (UTC) per the backend non-published rule. */
 export function canDropOn(a: Article, targetDate: Date): boolean {
   if (!isDraggable(a)) return false
-  const lockAt = addDays(targetDate, ARTICLE_LOCK_DAYS_OFFSET)
-  return !isBefore(lockAt, new Date())
+  // Reuse the same UTC-date comparison as isNonPublished so frontend and
+  // backend agree on what "in the future" means.
+  const todayUtcMidnight = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+  )
+  const targetUtcMidnight = Date.UTC(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+  )
+  return targetUtcMidnight > todayUtcMidnight
 }
 
 // ── Date formatting ─────────────────────────────────────────────────────────

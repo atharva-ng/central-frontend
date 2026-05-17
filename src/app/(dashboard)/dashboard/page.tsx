@@ -28,8 +28,10 @@ import {
   addDays,
   addWeeks,
   format,
+  isBefore,
   isSameDay,
   parseISO,
+  startOfDay,
   startOfWeek,
 } from "date-fns"
 import { toast } from "sonner"
@@ -41,7 +43,8 @@ import {
   isDraggable,
   type Article,
 } from "@/lib/articles"
-import { seoBlogRepository, useScheduledArticlesByWeeks, type ScheduledArticleDTO } from "@/lib/api/client"
+import { scheduledArticlesRepository, seoBlogRepository, updateCachedArticle, useScheduledArticlesByWeeks, type ScheduledArticleDTO } from "@/lib/api/client"
+import { toFunnel } from "@/constants/funnels"
 import { cn } from "@/lib/utils"
 
 /**
@@ -56,15 +59,18 @@ function toArticle(dto: ScheduledArticleDTO): Article {
     id: dto.id,
     title: dto.title || dto.keyword,
     keyword: dto.keyword,
-    funnel: "TOFU",
-    volume: 0,
-    difficulty: 0,
-    cpc: 0,
+    // Backend may omit funnel when the keyword has no funnel set yet —
+    // toFunnel falls back to "TOFU" rather than crashing the badge mapper.
+    funnel: toFunnel(dto.funnel ?? ""),
+    volume: dto.volume,
+    difficulty: dto.difficulty,
+    cpc: dto.cpc,
     type: dto.articleType ?? "",
     status: dto.status,
     // scheduleDate is always 00:00 UTC of the publish day — take the date part
     // directly rather than parsing to a local Date (which can shift the day).
     scheduledFor: dto.scheduleDate.slice(0, 10),
+    additionalInstructions: dto.additionalInstructions ?? "",
   }
 }
 
@@ -82,6 +88,15 @@ export default function DashboardPage() {
   // but two clicks can fire before React commits — this set is the
   // belt-and-suspenders dedupe so the second click is dropped.
   const generatingRef = useRef<Set<string>>(new Set())
+
+  // Per-article debounce state for drag-drop reschedules. Each entry pairs the
+  // pending setTimeout handle with the original ISO date so the optimistic
+  // move can be reverted on save failure. Keyed by article id; cleared when
+  // the debounced save resolves (success or fail).
+  const dragSaveRef = useRef<Map<string, { timer: ReturnType<typeof setTimeout>; originalIso: string }>>(new Map())
+  useEffect(() => () => {
+    for (const entry of dragSaveRef.current.values()) clearTimeout(entry.timer)
+  }, [])
 
   // Week state — anchor to Monday
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -152,6 +167,14 @@ export default function DashboardPage() {
 
   function handleSave(updated: Article) {
     setArticles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+    // Mirror the sidebar edit into the shared scheduled-articles cache so the
+    // /articles screen sees the new values without a refetch.
+    updateCachedArticle(updated.id, {
+      title: updated.title,
+      articleType: updated.type,
+      additionalInstructions: updated.additionalInstructions,
+      scheduleDate: `${updated.scheduledFor}T00:00:00Z`,
+    })
   }
 
   function handleCreate(created: Article) {
@@ -167,6 +190,9 @@ export default function DashboardPage() {
     setArticles((prev) =>
       prev.map((x) => (x.id === a.id ? { ...x, status: "generating" } : x))
     )
+    // Mirror the optimistic flip into the shared cache so /articles sees it
+    // without a refetch when the user navigates over.
+    updateCachedArticle(a.id, { status: "generating" })
     toast("Generation started — usually takes 2–3 minutes")
 
     try {
@@ -180,6 +206,7 @@ export default function DashboardPage() {
       setArticles((prev) =>
         prev.map((x) => (x.id === a.id ? { ...x, status: "scheduled" } : x))
       )
+      updateCachedArticle(a.id, { status: "scheduled" })
       generatingRef.current.delete(a.id)
       toast("Couldn't start generation — please try again")
     }
@@ -210,12 +237,58 @@ export default function DashboardPage() {
     const targetDate = parseISO(targetIso)
     if (article.scheduledFor === targetIso) return
     if (!canDropOn(article, targetDate)) {
-      toast("Can't drop there — needs at least 24h before publish")
+      toast("Can't drop there — schedule date must be in the future")
       return
     }
+
+    // Optimistic move locally + in the shared cache so the calendar reflects
+    // the new date instantly. The persist happens 1s later (debounced) so a
+    // rapid sequence of drops only fires the last one.
     setArticles((prev) =>
       prev.map((a) => (a.id === articleId ? { ...a, scheduledFor: targetIso } : a))
     )
+    updateCachedArticle(articleId, { scheduleDate: `${targetIso}T00:00:00Z` })
+
+    const pending = dragSaveRef.current.get(articleId)
+    // First drag for this article in this debounce window: capture the
+    // pre-drag date so we can revert if the eventual save fails. Subsequent
+    // drags before the timer fires keep the same original (so multiple drags
+    // ending at a new date revert all the way back to the pre-first-drag date).
+    const originalIso = pending?.originalIso ?? article.scheduledFor
+    if (pending) clearTimeout(pending.timer)
+
+    const timer = setTimeout(() => {
+      // Capture the date we're committing now — by the time the save resolves
+      // the user may have dragged again, in which case we don't want to revert.
+      const committingIso = targetIso
+      void (async () => {
+        try {
+          await scheduledArticlesRepository.update(getToken, {
+            scheduledArticleId: articleId,
+            scheduleDate: committingIso,
+          })
+          toast(`Rescheduled to ${format(parseISO(committingIso), "MMM d")}`)
+        } catch {
+          // Only revert if the article hasn't been dragged again since this
+          // request started — otherwise we'd overwrite a later optimistic move.
+          setArticles((prev) =>
+            prev.map((a) =>
+              a.id === articleId && a.scheduledFor === committingIso
+                ? { ...a, scheduledFor: originalIso }
+                : a,
+            ),
+          )
+          updateCachedArticle(articleId, { scheduleDate: `${originalIso}T00:00:00Z` })
+          toast("Couldn't reschedule — reverted to original date")
+        } finally {
+          // Clear only if this is still the latest pending save for the article.
+          const current = dragSaveRef.current.get(articleId)
+          if (current?.timer === timer) dragSaveRef.current.delete(articleId)
+        }
+      })()
+    }, 1000)
+
+    dragSaveRef.current.set(articleId, { timer, originalIso })
   }
 
   const draggingArticle = draggingId
@@ -418,6 +491,7 @@ function DayColumn({
   const { setNodeRef, isOver } = useDroppable({ id: iso, disabled: !valid })
 
   const today = isSameDay(date, new Date())
+  const isPast = isBefore(startOfDay(date), startOfDay(new Date()))
 
   return (
     <section
@@ -444,14 +518,16 @@ function DayColumn({
           </span>
         )}
         <div className="h-px flex-1 bg-border" />
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Plus className="size-3" />
-          Add
-        </button>
+        {!isPast && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="size-3" />
+            Add
+          </button>
+        )}
       </div>
 
       {articles.length === 0 ? (

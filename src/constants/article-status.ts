@@ -47,6 +47,7 @@ export const ARTICLE_STATUS_STYLES: Record<
 export const ARTICLE_FILTERS = [
   { id: "all", label: "All" },
   { id: "readyForReview", label: "Ready for review" },
+  { id: "draft", label: "Draft" },
   { id: "scheduled", label: "Scheduled" },
   { id: "published", label: "Published" },
   { id: "generating", label: "Generating" },

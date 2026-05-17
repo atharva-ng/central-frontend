@@ -28,7 +28,7 @@ import {
   parseISO,
 } from "date-fns"
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
-import { ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
+import { articleEditorToMarkdown, ArticleEditorContent, ArticleToolbar, FunnelBadge, ImageBubbleMenu, IndexlyLogo, LinkBubbleMenu, OpportunityScore, SegmentedControl, StatusBadge, useArticleEditor } from "@/components/app"
 import { APP_ROUTES, BRAND, META_DESC_MAX, META_TITLE_MAX, type ArticleStatus } from "@/constants"
 import { ApiError, scheduledArticlesRepository, useArticleByScheduleId } from "@/lib/api/client"
 import { articleDtoToRecord } from "@/lib/article-adapter"
@@ -36,6 +36,8 @@ import { clusterLabel, SECTION_HEADINGS, type ArticleImage, type ArticleRecord }
 import { cn } from "@/lib/utils"
 
 type ViewMode = "Edit" | "Preview"
+
+const VIEWABLE_STATUSES: ArticleStatus[] = ["readyForReview", "draft", "published"]
 
 export default function ArticleReviewPage() {
   const params = useParams<{ id: string }>()
@@ -50,6 +52,9 @@ export default function ArticleReviewPage() {
   if (load.kind === "not-found") return <ArticleNotice title="Article not found" body="This article may have been deleted or never existed." />
   if (load.kind === "error") return <ArticleNotice title="Couldn't load article" body={load.message} />
   if (!article) return null
+  if (!VIEWABLE_STATUSES.includes(article.status)) {
+    return <ArticleNotice title="Article not found" body="This article may have been deleted or never existed." />
+  }
 
   // Key by id + status so a pipeline transition (generating → readyForReview)
   // re-initialises local form state with the freshly-generated meta/slug.
@@ -96,7 +101,7 @@ function ArticleReview({ article }: { article: ArticleRecord }) {
     try {
       await scheduledArticlesRepository.saveDraft(getToken, {
         scheduledArticleId: article.id,
-        articleContent: editor.getHTML(),
+        articleContent: articleEditorToMarkdown(editor),
         metaTitle,
         metaDescription: metaDesc,
         urlSlug: slug,

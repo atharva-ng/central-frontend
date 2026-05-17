@@ -7,8 +7,29 @@ import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
 import CharacterCount from "@tiptap/extension-character-count"
 import { marked } from "marked"
+import TurndownService from "turndown"
+// turndown-plugin-gfm ships no types — minimal shim for the bits we use.
+import { gfm } from "turndown-plugin-gfm"
 import { useEffect, useMemo } from "react"
 import type { ArticleImage } from "@/lib/article-data"
+
+// One shared instance — turndown is stateless across .turndown() calls.
+// `fenced` keeps ``` blocks (matches what marked produces from the backend).
+// We keep raw <img> tags rather than collapsing to ![alt](src) so the backend's
+// "images stitched in as raw <img>" contract round-trips byte-for-byte.
+// gfm() adds strikethrough (~~), task lists, and tables — without it, TipTap's
+// <s> output gets dropped on serialize and disappears after Save draft.
+const turndown = new TurndownService({
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
+  emDelimiter: "_",
+  bulletListMarker: "-",
+}).keep(["img"])
+turndown.use(gfm)
+
+export function articleEditorToMarkdown(editor: Editor): string {
+  return turndown.turndown(editor.getHTML())
+}
 
 const PROSE_CLASSES =
   "prose prose-sm max-w-none focus:outline-none " +

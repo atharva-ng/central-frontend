@@ -18,6 +18,7 @@ import {
   type ArticleStatus,
   type Funnel,
 } from "@/constants"
+import { toFunnel } from "@/constants/funnels"
 import {
   useScheduledArticlesByWeeks,
   type ScheduledArticleDTO,
@@ -35,17 +36,16 @@ interface ArticleRow {
   scheduledFor: string | null
 }
 
-/** Backend articles only carry calendar essentials — the columns the table
- *  renders that aren't on the DTO yet (funnel, word count) get neutral
- *  defaults until a richer endpoint exists. */
 function toRow(dto: ScheduledArticleDTO): ArticleRow {
   return {
     id: dto.id,
     title: dto.title || dto.keyword,
     keyword: dto.keyword,
     type: dto.articleType ?? "—",
-    funnel: "TOFU",
-    words: 0,
+    // Backend may omit funnel when the keyword has no funnel set yet —
+    // toFunnel falls back to "TOFU" rather than crashing the badge mapper.
+    funnel: toFunnel(dto.funnel ?? ""),
+    words: dto.wordCount,
     status: dto.status,
     scheduledFor: dto.scheduleDate
       ? format(parseISO(dto.scheduleDate), "MMM d, yyyy")

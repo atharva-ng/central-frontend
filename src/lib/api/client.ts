@@ -36,6 +36,7 @@ export type {
   SaveArticleDraftPayload,
   ScheduledArticleDTO,
   ScheduledArticlesResponse,
+  UpdateScheduledArticlePayload,
 } from "./repositories/scheduled-articles.client"
 export { seoBlogRepository } from "./repositories/seo-blog.client"
 export type {
@@ -89,3 +90,4 @@ export {
   setCachedWebEntity,
   clearCachedWebEntity,
 } from "./web-entity-cache"
+export { updateCachedArticle } from "./scheduled-articles-cache"

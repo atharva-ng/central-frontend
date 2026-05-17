@@ -1,29 +1,53 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { ChevronDown, ExternalLink, Clipboard } from "lucide-react"
+import { useMemo, useRef, useState } from "react"
+import { useAuth } from "@clerk/nextjs"
+import { ChevronDown, ExternalLink, Clipboard, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from "@/components/ui"
 import { FunnelBadge, FramerIcon, OpportunityScore, SectionLede, TagInput, Topbar } from "@/components/app"
 import {
+  ApiError,
+  onboardingRepository,
+  setCachedWebEntity,
   toCluster,
   useKeywordData,
+  useWebEntity,
   type Cadence,
   type Cluster,
+  type PatchOp,
   type PublishingOptions,
   type PublishMode,
   type PublishPlatform as Platform,
+  type WebEntity,
 } from "@/lib/api/client"
-import type { WebEntity } from "@/lib/api/server"
 import { COUNTRIES } from "@/lib/countries"
 import { cn } from "@/lib/utils"
 
 interface SettingsClientProps {
-  webEntity: WebEntity
   options: PublishingOptions
 }
 
-export function SettingsClient({ webEntity, options }: SettingsClientProps) {
+export function SettingsClient({ options }: SettingsClientProps) {
+  const webEntityState = useWebEntity()
+
+  if (webEntityState.kind === "loading") {
+    return <SettingsLoading />
+  }
+  if (webEntityState.kind === "missing-web-entity") {
+    return <SettingsNotice title="No web entity found" body="Finish onboarding to start configuring settings." />
+  }
+  if (webEntityState.kind === "error") {
+    return <SettingsNotice title="Couldn't load settings" body={webEntityState.message} />
+  }
+
+  return <SettingsForm webEntity={webEntityState.data} options={options} />
+}
+
+function SettingsForm({ webEntity, options }: { webEntity: WebEntity; options: PublishingOptions }) {
+  const { getToken } = useAuth()
   const ctx = webEntity.businessContext
+  const pub = webEntity.publishing
   const keywordData = useKeywordData()
   const clusters = useMemo<Cluster[]>(() => {
     if (keywordData.kind !== "ready") return []
@@ -31,35 +55,58 @@ export function SettingsClient({ webEntity, options }: SettingsClientProps) {
   }, [keywordData])
   const totalKeywords = clusters.reduce((n, c) => n + 1 + c.supporting.length, 0)
 
+  // Initial values pulled from the loaded entity. The ref below snapshots them
+  // so we can diff on save without re-reading state; after a successful save
+  // we overwrite the ref so further edits diff against what's now persisted.
+  const initial = {
+    businessName: ctx?.businessName ?? "",
+    productType: ctx?.productType ?? "",
+    differentiator: ctx?.keyDifferentiator ?? "",
+    market: ctx?.targetGeography ?? "Global",
+    businessModel: ctx?.businessModel ?? "",
+    integrations: ctx?.integrations ?? [],
+    icpRoles: ctx?.icpSignals?.roles ?? [],
+    icpPain: ctx?.icpSignals?.painPoints?.[0] ?? "",
+    platform: (pub?.platform as Platform | undefined) ?? "manual",
+    cadence: (pub?.articlesPerWeek as Cadence | undefined) ?? 10,
+    publishMode: (pub?.publishMode as PublishMode | undefined) ?? "review",
+    brandVoice: ctx?.brandVoiceSignals ?? "",
+  }
+  const originalRef = useRef(initial)
+
   // — Business
-  const [businessName, setBusinessName] = useState(ctx?.businessName ?? "")
-  const [websiteUrl, setWebsiteUrl] = useState(webEntity.websiteUrl)
-  const [productType, setProductType] = useState(ctx?.productType ?? "")
-  const [differentiator, setDifferentiator] = useState(ctx?.keyDifferentiator ?? "")
-  const [market, setMarket] = useState("Global")
-  const [businessModel, setBusinessModel] = useState(ctx?.businessModel ?? "")
-  const [integrations, setIntegrations] = useState<string[]>(
-    ctx?.integrations && ctx.integrations.length > 0
-      ? ctx.integrations
-      : []
-  )
+  const [businessName, setBusinessName] = useState(initial.businessName)
+  // websiteUrl is part of the top-level WebEntity (not businessContext) and is
+  // not on the patch whitelist — render it read-only so users don't think they
+  // can edit it from settings.
+  const websiteUrl = webEntity.websiteUrl
+  const [productType, setProductType] = useState(initial.productType)
+  const [differentiator, setDifferentiator] = useState(initial.differentiator)
+  const [market, setMarket] = useState(initial.market)
+  const [businessModel, setBusinessModel] = useState(initial.businessModel)
+  const [integrations, setIntegrations] = useState<string[]>(initial.integrations)
 
   // — Customer
-  const [icpRoles, setIcpRoles] = useState<string[]>(ctx?.icpSignals?.roles ?? [])
-  const [icpPain, setIcpPain] = useState(ctx?.icpSignals?.painPoints?.[0] ?? "")
+  const [icpRoles, setIcpRoles] = useState<string[]>(initial.icpRoles)
+  const [icpPain, setIcpPain] = useState(initial.icpPain)
 
   // — Publishing
-  const [platform, setPlatform] = useState<Platform>("manual")
+  const [platform, setPlatform] = useState<Platform>(initial.platform)
+  // framerUrl is UI-only — the schema has no field for the destination URL,
+  // only the apiKey on `publishing`.
   const [framerUrl, setFramerUrl] = useState("")
   const [framerToken, setFramerToken] = useState("")
-  const [cadence, setCadence] = useState<Cadence>(10)
-  const [publishMode, setPublishMode] = useState<PublishMode>("review")
+  const [cadence, setCadence] = useState<Cadence>(initial.cadence)
+  const [publishMode, setPublishMode] = useState<PublishMode>(initial.publishMode)
 
   // — Voice
-  const [brandVoice, setBrandVoice] = useState(ctx?.brandVoiceSignals ?? "")
+  const [brandVoice, setBrandVoice] = useState(initial.brandVoice)
+  // wordsToAvoid has no backend field yet — local-only string for now.
   const [wordsToAvoid, setWordsToAvoid] = useState(
     "leverage, synergize, robust, cutting-edge"
   )
+
+  const [saving, setSaving] = useState(false)
 
   const competitors = (webEntity.competitors ?? []).map((c, i) => ({
     domain: (c.domain ?? "").replace(/^www\./, ""),
@@ -67,6 +114,139 @@ export function SettingsClient({ webEntity, options }: SettingsClientProps) {
     reason: c.reason ?? "",
     idx: i,
   })).filter((c) => c.domain.length > 0)
+
+  function buildPatchOps(): PatchOp[] {
+    const orig = originalRef.current
+    const ops: PatchOp[] = []
+
+    const stringField = (field: string, current: string, original: string) => {
+      if (current === original) return
+      const trimmed = current.trim()
+      if (trimmed.length === 0) {
+        ops.push({ op: "remove", field })
+      } else {
+        ops.push({ op: "replace", field, value: trimmed })
+      }
+    }
+
+    const arrayField = (field: string, current: string[], original: string[]) => {
+      if (arraysEqual(current, original)) return
+      ops.push({ op: "replace", field, value: current })
+    }
+
+    stringField("context.business_name", businessName, orig.businessName)
+    stringField("context.product_type", productType, orig.productType)
+    stringField("context.key_differentiator", differentiator, orig.differentiator)
+    stringField("context.business_model", businessModel, orig.businessModel)
+    stringField("context.target_geography", market, orig.market)
+    stringField("context.brand_voice_signals", brandVoice, orig.brandVoice)
+    arrayField("context.integrations", integrations, orig.integrations)
+    arrayField("context.icp_signals.roles", icpRoles, orig.icpRoles)
+
+    // pain_points is a []string in the schema but the form only edits the
+    // first entry — preserve the rest when re-uploading.
+    const painChanged = icpPain !== orig.icpPain
+    if (painChanged) {
+      const rest = ctx?.icpSignals?.painPoints?.slice(1) ?? []
+      const next = icpPain.trim().length > 0 ? [icpPain.trim(), ...rest] : rest
+      ops.push({ op: "replace", field: "context.icp_signals.pain_points", value: next })
+    }
+
+    const newToken = framerToken.trim()
+    const publishingChanged =
+      platform !== orig.platform ||
+      cadence !== orig.cadence ||
+      publishMode !== orig.publishMode ||
+      newToken.length > 0
+    if (publishingChanged) {
+      const value: Record<string, unknown> = {
+        platform,
+        articlesPerWeek: cadence,
+        publishMode,
+      }
+      if (newToken.length > 0) value.apiKey = newToken
+      ops.push({ op: "replace", field: "publishing", value })
+    }
+
+    return ops
+  }
+
+  async function handleSave() {
+    if (saving) return
+    const ops = buildPatchOps()
+    if (ops.length === 0) {
+      toast("Nothing to save")
+      return
+    }
+
+    setSaving(true)
+    try {
+      await onboardingRepository.patchWebEntity(getToken, {
+        webEntityId: webEntity.id,
+        ops,
+      })
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? `Couldn't save (${err.status}).`
+          : "Couldn't reach the server. Check your connection."
+      toast.error(message)
+      setSaving(false)
+      return
+    }
+
+    // Refetch from the server so the cache + diff baseline reflect exactly
+    // what was persisted (including any server-side sanitization). The form's
+    // local state already shows the typed values; we re-seed it from the
+    // fresh entity so any normalization the backend applied is visible.
+    let fresh: WebEntity
+    try {
+      fresh = await onboardingRepository.getCurrentWebEntity(getToken)
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? `Saved, but couldn't refresh (${err.status}).`
+          : "Saved, but couldn't refresh from the server."
+      toast.error(message)
+      setSaving(false)
+      return
+    }
+
+    setCachedWebEntity(fresh.id, fresh)
+
+    const freshCtx = fresh.businessContext
+    const freshPub = fresh.publishing
+    const next = {
+      businessName: freshCtx?.businessName ?? "",
+      productType: freshCtx?.productType ?? "",
+      differentiator: freshCtx?.keyDifferentiator ?? "",
+      market: freshCtx?.targetGeography ?? "Global",
+      businessModel: freshCtx?.businessModel ?? "",
+      integrations: freshCtx?.integrations ?? [],
+      icpRoles: freshCtx?.icpSignals?.roles ?? [],
+      icpPain: freshCtx?.icpSignals?.painPoints?.[0] ?? "",
+      platform: (freshPub?.platform as Platform | undefined) ?? "manual",
+      cadence: (freshPub?.articlesPerWeek as Cadence | undefined) ?? 10,
+      publishMode: (freshPub?.publishMode as PublishMode | undefined) ?? "review",
+      brandVoice: freshCtx?.brandVoiceSignals ?? "",
+    }
+    originalRef.current = next
+    setBusinessName(next.businessName)
+    setProductType(next.productType)
+    setDifferentiator(next.differentiator)
+    setMarket(next.market)
+    setBusinessModel(next.businessModel)
+    setIntegrations(next.integrations)
+    setIcpRoles(next.icpRoles)
+    setIcpPain(next.icpPain)
+    setPlatform(next.platform)
+    setCadence(next.cadence)
+    setPublishMode(next.publishMode)
+    setBrandVoice(next.brandVoice)
+    setFramerToken("")
+    setSaving(false)
+    toast.success("Settings saved")
+  }
 
   return (
     <>
@@ -82,8 +262,11 @@ export function SettingsClient({ webEntity, options }: SettingsClientProps) {
                 <Field label="Business name">
                   <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
                 </Field>
-                <Field label="Website URL">
-                  <Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                <Field
+                  label="Website URL"
+                  hint={<span className="text-[11px] text-muted-foreground/70">Read-only</span>}
+                >
+                  <Input value={websiteUrl} readOnly disabled />
                 </Field>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -315,7 +498,16 @@ export function SettingsClient({ webEntity, options }: SettingsClientProps) {
 
           {/* Save */}
           <div className="flex justify-end border-t border-border pt-6">
-            <Button type="button">Save changes</Button>
+            <Button type="button" disabled={saving} onClick={handleSave}>
+              {saving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Saving
+                </>
+              ) : (
+                "Save changes"
+              )}
+            </Button>
           </div>
 
         </div>
@@ -528,5 +720,48 @@ function Field({
       </div>
       {children}
     </div>
+  )
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
+function SettingsLoading() {
+  return (
+    <>
+      <Topbar title="Settings" action={<span />} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-6">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    </>
+  )
+}
+
+function SettingsNotice({ title, body }: { title: string; body: string }) {
+  return (
+    <>
+      <Topbar title="Settings" action={<span />} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-6 py-10">
+          <div className="border border-border rounded-lg bg-card px-6 py-12 flex flex-col items-center gap-1 text-center">
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs text-muted-foreground max-w-sm">{body}</p>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }

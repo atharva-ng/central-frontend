@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import { CalendarDays, Lock, PencilLine, RotateCcw, Sparkles } from "lucide-react"
 import { toast } from "sonner"
-import { addDays, isBefore } from "date-fns"
+import { addDays, format, isBefore } from "date-fns"
 import { Button, Calendar, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, Textarea } from "@/components/ui"
 import { SectionLede } from "@/components/app/SectionLede"
 import { KeywordSwapDialog } from "@/components/app/KeywordSwapDialog"
@@ -11,10 +13,12 @@ import {
   ARTICLE_TYPES,
   formatShortDate,
   isMetadataLocked,
+  isNonPublished,
   lockMessage,
   type Article,
 } from "@/lib/articles"
 import { cn } from "@/lib/utils"
+import { scheduledArticlesRepository, type UpdateScheduledArticlePayload } from "@/lib/api/client"
 
 interface EditArticleSheetProps {
   article: Article | null
@@ -38,6 +42,8 @@ export function EditArticleSheet({
   onSave,
   onGenerate,
 }: EditArticleSheetProps) {
+  const { getToken } = useAuth()
+  const router = useRouter()
   const [title, setTitle] = useState("")
   const [showAlternatives, setShowAlternatives] = useState(false)
   const [type, setType] = useState<string>(ARTICLE_TYPES[0])
@@ -45,14 +51,18 @@ export function EditArticleSheet({
   const [instructions, setInstructions] = useState("")
   const [swapOpen, setSwapOpen] = useState(false)
   const [keyword, setKeyword] = useState("")
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (article) {
+      // Seeding form state from the article prop — the legitimate exception
+      // to react-hooks/set-state-in-effect (external store → local state).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(article.title)
       setType(article.type)
       setDate(new Date(article.scheduledFor + "T00:00:00"))
       setShowAlternatives(false)
-      setInstructions("")
+      setInstructions(article.additionalInstructions ?? "")
       setKeyword(article.keyword)
     }
   }, [article])
@@ -65,11 +75,27 @@ export function EditArticleSheet({
   const isGenerated = article.status === "readyForReview"
   const isPublished = article.status === "published"
   const isScheduled = article.status === "scheduled"
+  const isDraft = article.status === "draft"
+  const isGenerating = article.status === "generating"
 
-  // Date picker can't go below "tomorrow + 1d" (24h lock buffer) for scheduled rows
+  // Backend-aligned: schedule date editable iff the article is still
+  // "non-published" (not published AND scheduledFor strictly > today UTC).
+  const dateEditable = isNonPublished(article)
+  // Scheduled rows additionally gate ALL edits when the slot's current date is
+  // today/past — matches the backend's "scheduled today = locked" rule.
+  const scheduledFieldsEditable = isScheduled && dateEditable
+  // Draft / readyForReview allow title regardless of date; non-title fields stay
+  // backend-locked for these statuses.
+  const titleEditable =
+    scheduledFieldsEditable || ((isDraft || isGenerated) && !isGenerating)
+  const typeEditable = scheduledFieldsEditable
+  const instructionsEditable = scheduledFieldsEditable
+  const anyEditable = titleEditable || typeEditable || instructionsEditable || dateEditable
+
+  // Date picker can't go below tomorrow's UTC midnight (backend strictly > today).
   const minPickable = addDays(new Date(), 1)
   function dateDisabled(d: Date) {
-    if (!isScheduled) return true // generated/published/generating dates are read-only
+    if (!dateEditable) return true
     return isBefore(d, minPickable)
   }
 
@@ -78,17 +104,64 @@ export function EditArticleSheet({
     setShowAlternatives(false)
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!article || !date) return
-    const updated: Article = {
-      ...article,
-      title,
-      type: locked ? article.type : type,
-      keyword,
-      scheduledFor: date.toISOString().slice(0, 10),
+
+    // Build the partial payload — only send fields that actually changed AND
+    // that the current status allows. The backend re-validates either way; the
+    // client-side filter avoids surprising 409s on no-op fields.
+    const payload: UpdateScheduledArticlePayload = { scheduledArticleId: article.id }
+    let changedAny = false
+
+    if (titleEditable && title.trim() !== article.title) {
+      payload.title = title.trim()
+      changedAny = true
     }
-    onSave?.(updated)
-    toast(isGenerated ? "Title and date updated" : "Changes saved")
+    if (typeEditable && type !== article.type) {
+      payload.articleType = type
+      changedAny = true
+    }
+    if (instructionsEditable && instructions !== (article.additionalInstructions ?? "")) {
+      payload.additionalInstructions = instructions
+      changedAny = true
+    }
+    if (dateEditable) {
+      const nextIso = format(date, "yyyy-MM-dd")
+      if (nextIso !== article.scheduledFor) {
+        payload.scheduleDate = nextIso
+        changedAny = true
+      }
+    }
+
+    if (!changedAny) {
+      onOpenChange(false)
+      return
+    }
+
+    setSaving(true)
+    try {
+      await scheduledArticlesRepository.update(getToken, payload)
+      const updated: Article = {
+        ...article,
+        title: payload.title ?? article.title,
+        type: payload.articleType ?? article.type,
+        additionalInstructions:
+          payload.additionalInstructions ?? article.additionalInstructions,
+        scheduledFor: payload.scheduleDate ?? article.scheduledFor,
+        keyword,
+      }
+      onSave?.(updated)
+      toast("Changes saved")
+      onOpenChange(false)
+    } catch {
+      toast("Couldn't save changes — please try again")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleEditContent() {
+    router.push(`/article/${article!.id}`)
     onOpenChange(false)
   }
 
@@ -136,7 +209,7 @@ export function EditArticleSheet({
           {isGenerated && (
             <button
               type="button"
-              onClick={() => toast("Article editor coming in next screen")}
+              onClick={handleEditContent}
               className="group flex items-center justify-between gap-3 rounded-md border border-foreground/20 bg-card hover:bg-muted/40 transition-colors px-4 py-3.5 text-left"
             >
               <div className="flex items-center gap-3">
@@ -162,9 +235,9 @@ export function EditArticleSheet({
               onChange={(e) => setTitle(e.target.value)}
               rows={3}
               className="resize-none"
-              disabled={isPublished}
+              disabled={!titleEditable}
             />
-            {!isPublished && (
+            {titleEditable && (
               <button
                 type="button"
                 onClick={() => setShowAlternatives((v) => !v)}
@@ -212,7 +285,7 @@ export function EditArticleSheet({
               <span className="text-muted-foreground/40">·</span>
               <span>CPC <span className="text-foreground">${article.cpc.toFixed(2)}</span></span>
             </div>
-            {isScheduled && (
+            {scheduledFieldsEditable && (
               <button
                 type="button"
                 onClick={() => setSwapOpen(true)}
@@ -229,7 +302,7 @@ export function EditArticleSheet({
             <Select
               value={type}
               onValueChange={(v) => v && setType(v)}
-              disabled={locked}
+              disabled={!typeEditable}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -242,10 +315,10 @@ export function EditArticleSheet({
             </Select>
           </section>
 
-          {/* Date — reschedulable for scheduled AND generated */}
-          {!isPublished && (
+          {/* Date — reschedulable while the article is still non-published. */}
+          {dateEditable && (
             <section className="flex flex-col gap-3">
-              <SectionLede number="04" label={isGenerated ? "Reschedule" : "Scheduled date"} />
+              <SectionLede number="04" label={isScheduled ? "Scheduled date" : "Reschedule"} />
               <Popover>
                 <PopoverTrigger className="w-fit inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium rounded-4xl border border-border bg-input/30 hover:bg-input/50 transition-colors">
                   <CalendarDays className="size-4" />
@@ -270,7 +343,7 @@ export function EditArticleSheet({
           )}
 
           {/* Instructions */}
-          {isScheduled && (
+          {instructionsEditable && (
             <section className="flex flex-col gap-3">
               <SectionLede number="05" label="Additional instructions" />
               <p className="text-xs text-muted-foreground -mt-1">
@@ -286,7 +359,7 @@ export function EditArticleSheet({
           )}
 
           {/* Generate-now CTA on scheduled rows */}
-          {isScheduled && onGenerate && (
+          {scheduledFieldsEditable && onGenerate && (
             <button
               type="button"
               onClick={() => {
@@ -310,12 +383,12 @@ export function EditArticleSheet({
         </div>
 
         <SheetFooter className="border-t border-border px-6 py-4 flex-row justify-between gap-2 sm:justify-between">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            {isPublished ? "Close" : "Cancel"}
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            {anyEditable ? "Cancel" : "Close"}
           </Button>
-          {!isPublished && (
-            <Button type="button" onClick={handleSave}>
-              Save changes
+          {anyEditable && (
+            <Button type="button" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save changes"}
             </Button>
           )}
         </SheetFooter>

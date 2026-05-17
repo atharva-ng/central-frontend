@@ -15,9 +15,14 @@ export type WebEntityLoadState =
   | { kind: "ready"; data: WebEntity }
 
 /**
- * Loads the user's web entity on the client, sharing the module-level cache
- * with `useOnboardingStepPolling` so the dashboard lands warm whenever the
- * user just finished polling through onboarding.
+ * Loads the user's web entity on the client. Reads through the module-level
+ * cache so screens like /settings share state with `useOnboardingStepPolling`
+ * (which warms the cache during onboarding) — once fetched, subsequent
+ * navigations are instant until something explicitly invalidates the entry.
+ *
+ * When a cached `webEntityId` exists in localStorage we use it as the cache
+ * key for a fast hit; otherwise we fetch via `getCurrentWebEntity`, persist
+ * the returned id back into localStorage, and cache the entity.
  */
 export function useWebEntity(): WebEntityLoadState {
   const { getToken } = useAuth()
@@ -33,31 +38,32 @@ export function useWebEntity(): WebEntityLoadState {
       // localStorage unavailable.
     }
 
-    if (!webEntityId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setState({ kind: "missing-web-entity" })
-      return
-    }
-
-    const cached = getCachedWebEntity(webEntityId)
-    if (cached) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setState({ kind: "ready", data: cached })
-      return
+    if (webEntityId) {
+      const cached = getCachedWebEntity(webEntityId)
+      if (cached) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setState({ kind: "ready", data: cached })
+        return
+      }
     }
 
     async function run() {
       try {
-        const { webEntity } = await onboardingRepository.getStep(getToken)
+        const webEntity = await onboardingRepository.getCurrentWebEntity(getToken)
         if (cancelled) return
-        if (!webEntity) {
-          setState({ kind: "missing-web-entity" })
-          return
+        setCachedWebEntity(webEntity.id, webEntity)
+        try {
+          window.localStorage.setItem(STORAGE_KEYS.webEntityId, webEntity.id)
+        } catch {
+          // localStorage unavailable — cache hit will still work for the session.
         }
-        setCachedWebEntity(webEntityId!, webEntity)
         setState({ kind: "ready", data: webEntity })
       } catch (err) {
         if (cancelled) return
+        if (err instanceof ApiError && err.status === 404) {
+          setState({ kind: "missing-web-entity" })
+          return
+        }
         setState({
           kind: "error",
           message:

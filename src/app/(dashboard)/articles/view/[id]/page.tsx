@@ -27,6 +27,8 @@ import { articleDtoToRecord } from "@/lib/article-adapter"
 import { clusterLabel, type ArticleImage, type ArticleRecord } from "@/lib/article-data"
 import { cn } from "@/lib/utils"
 
+const VIEWABLE_STATUSES: ArticleStatus[] = ["readyForReview", "draft", "published"]
+
 export default function ArticleViewPage() {
   const params = useParams<{ id: string }>()
   const load = useArticleByScheduleId(params?.id)
@@ -40,6 +42,9 @@ export default function ArticleViewPage() {
   if (load.kind === "not-found") return <ArticleNotice title="Article not found" body="This article may have been deleted or never existed." />
   if (load.kind === "error") return <ArticleNotice title="Couldn't load article" body={load.message} />
   if (!article) return null
+  if (!VIEWABLE_STATUSES.includes(article.status)) {
+    return <ArticleNotice title="Article not found" body="This article may have been deleted or never existed." />
+  }
 
   return <ArticleView article={article} />
 }

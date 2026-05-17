@@ -4,6 +4,7 @@ import {
   ONBOARDING_STEPS,
   normalizeOnboardingStep,
   type OnboardingStepsResponse,
+  type WebEntity,
 } from "../onboarding-steps"
 import type { PublishingOptions } from "../publishing"
 import type { ApiResponse } from "../types"
@@ -106,6 +107,21 @@ export const onboardingRepository = {
       return { ...response.data, step: ONBOARDING_STEPS.USER_CREATED }
     }
     return { ...response.data, step: normalizedStep }
+  },
+
+  /**
+   * Fetches the current user's web entity. Unlike `getStep`, the backend
+   * returns the entity here regardless of onboarding step — used by /settings
+   * where the user is past CONTEXT_CREATED and `getStep` therefore omits it.
+   */
+  async getCurrentWebEntity(
+    getToken: ClerkTokenGetter,
+  ): Promise<WebEntity> {
+    const res = await apiFetchClient<ApiResponse<WebEntity>>(
+      getToken,
+      ROUTES.onboarding.webEntityMe,
+    )
+    return res.data
   },
 
   /**

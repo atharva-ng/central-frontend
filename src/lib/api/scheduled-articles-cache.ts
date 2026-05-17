@@ -31,6 +31,25 @@ export function setCachedWeek(
 }
 
 /**
+ * Applies a partial update to a cached scheduled article wherever it lives.
+ * Used to keep the /articles view in sync with mutations triggered from
+ * /dashboard (e.g. "Generate now" flipping status to "generating") without
+ * waiting for a refetch.
+ */
+export function updateCachedArticle(
+  articleId: string,
+  patch: Partial<ScheduledArticleDTO>,
+): void {
+  for (const [k, articles] of cache.entries()) {
+    const idx = articles.findIndex((a) => a.id === articleId)
+    if (idx === -1) continue
+    const next = articles.slice()
+    next[idx] = { ...next[idx], ...patch }
+    cache.set(k, next)
+  }
+}
+
+/**
  * Buckets fetched articles into their Mon-aligned week bucket. Every week in
  * `weekStarts` ends up represented — empty weeks remain empty arrays so they
  * can be cached as "confirmed empty" rather than re-fetched next time.

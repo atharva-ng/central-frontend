@@ -13,10 +13,22 @@ export type ScheduledArticleDTO = {
   title?: string
   articleType?: string
   reasoning?: string
+  /** User-supplied dashboard guidance threaded into article generation. */
+  additionalInstructions?: string
+  /** Keyword-derived stats hydrated from the referenced keyword doc. */
+  volume: number
+  difficulty: number
+  cpc: number
+  /** TOFU / MOFU / BOFU string. Empty when the keyword has no funnel set. */
+  funnel?: string
+  intent?: string
+  cluster?: string
   /** RFC3339 — always 00:00 UTC of the publish day. */
   scheduleDate: string
   /** Lifecycle label — matches the backend enum string. */
   status: ArticleStatus
+  /** Word count of the generated article body — 0 until the pipeline produces content. */
+  wordCount: number
 }
 
 export type ScheduledArticlesResponse = {
@@ -137,6 +149,26 @@ export const scheduledArticlesRepository = {
       { method: "PATCH", body: payload },
     )
   },
+
+  /**
+   * Dashboard sidebar / drag-drop partial edit. Each field is optional —
+   * omit a field to leave the persisted value untouched. The backend enforces
+   * status-based gating: generating/published reject everything; draft and
+   * readyForReview allow only title (+ scheduleDate when the slot is still
+   * "non-published"); scheduled allows everything when the current date is
+   * still in the future. `scheduleDate` is `YYYY-MM-DD` and interpreted as
+   * UTC midnight by the backend.
+   */
+  async update(
+    getToken: ClerkTokenGetter,
+    payload: UpdateScheduledArticlePayload,
+  ): Promise<void> {
+    await apiFetchClient<ApiResponse<{ status: string }>>(
+      getToken,
+      ROUTES.scheduledArticles.articleEdit,
+      { method: "PATCH", body: payload },
+    )
+  },
 }
 
 export type SaveArticleDraftPayload = {
@@ -145,4 +177,18 @@ export type SaveArticleDraftPayload = {
   metaTitle: string
   metaDescription: string
   urlSlug: string
+}
+
+/**
+ * Dashboard partial-edit payload. Every field except `scheduledArticleId` is
+ * optional — omit a field to leave the persisted value untouched. Backend
+ * gates by status; see scheduledArticlesRepository.update for the rules.
+ */
+export type UpdateScheduledArticlePayload = {
+  scheduledArticleId: string
+  title?: string
+  articleType?: string
+  additionalInstructions?: string
+  /** YYYY-MM-DD — backend interprets as UTC midnight. */
+  scheduleDate?: string
 }
